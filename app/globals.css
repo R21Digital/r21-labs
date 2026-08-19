@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   R21 Labs — Midnight AI
+   Source of truth: .claude/skills/brand-r21/SKILL.md (canonical:
+   clients/r21/operations/r21-brand-guidelines.md).
+
+   🔴 DO NOT take tokens from clients/r21/templates/design/tokens.json — that file
+   still ships the RETIRED pre-2026 palette (navy #1A1A2E, blue #0F3460).
+
+   Structural tokens (hairline, radii, motion) come from the chosen whole-page
+   system, `operational-enterprise-ai`. Brand outranks direction on colour and
+   type; the direction supplies structure and motion only.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* Base surfaces */
+  --color-canvas: #0a0a14; /* near-black, the default surface */
+  --color-surface: #13131f; /* card */
+
+  /* The single accent. One only — CTAs and emphasis. */
+  --color-accent: #e94560;
+
+  /* Aurora. Used as LIGHT/GLOW, never as a flat fill.
+     The direction bans glowing orbs, particle fields and neon gradients but
+     permits "one restrained spectral treatment" — that clause is the whole
+     licence for these, so they appear twice on the page and nowhere else:
+     an ambient wash behind the hero trace, and the chapter-handoff hairline. */
+  --color-aurora-blue: #3b82f6;
+  --color-aurora-violet: #7c3aed;
+  --color-aurora-violet-soft: #8b5cf6;
+  --color-aurora-magenta: #e94560;
+  --color-signal-cyan: #22d3ee; /* technical accents only */
+
+  /* Type on dark */
+  --color-ink: #ffffff;
+  --color-ink-muted: #9aa0b4;
+  --color-ink-dim: #6c6c6c;
+
+  /* Light chapter — the direction reserves white sections for operational
+     explanation and metric pauses. This is a section surface, NOT a light
+     theme; the site has no light mode.
+     NOTE: brand-r21 defines no text-on-light colour. Rather than invent one,
+     ink-on-light is the canvas value. Flagged in the plan as a brand gap. */
+  --color-chapter: #f5f5f5;
+  --color-chapter-ink: #0a0a14;
+
+  /* Type families — wired to next/font in app/layout.tsx */
+  --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Low radii — the direction calls for square panels and low radii */
+  --radius-card: 6px;
+  --radius-control: 4px;
+}
+
+:root {
+  /* Hairline grid — the direction's structural signature. Does a border's job
+     at lower visual weight. */
+  --hairline: rgba(255, 255, 255, 0.06);
+  --hairline-strong: rgba(255, 255, 255, 0.12);
+
+  /* Motion.
+     Two bands, and the split is deliberate — see the plan's "Conflict 2".
+     `operational-enterprise-ai` asks for 160–220ms controls and 500–760ms
+     section entrances. `review-animations` standard #4 requires sub-300ms UI.
+     Not a contradiction: Emil governs UI CONTROLS, the longer band governs
+     SECTION ENTRANCES. Controls sit at 180ms and satisfy both. Entrances take
+     the LOW end of the direction's band and must be justified at review — if
+     the reviewer flags them, Emil wins. */
+  --dur-control: 180ms;
+  --dur-section: 500ms;
+
+  /* Emil standard #3: built-in CSS easings are too weak for entrances.
+     Entering/exiting elements get a strong custom ease-out. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Tabular numerals. The direction requires them, and there is a second reason:
+   a metric whose digits change width while loading reads as fabricated on a
+   site whose entire premise is that its numbers are verified. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Emil standard #8: reduced motion is GENTLER, not zero. Movement is dropped;
+   opacity and colour survive. The direction agrees — "render settled states
+   immediately under reduced motion". */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-control: 1ms;
+    --dur-section: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Emil standard #8: hover animations are gated behind real pointers, so a
+   touch device never inherits a stuck hover state. */
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift {
+    transition: transform var(--dur-control) var(--ease-out);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
