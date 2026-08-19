@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "check:links": "vite-node scripts/check-links.ts",
+    "prebuild": "npm run check:links",
+    "verify": "npm run build && npm run test"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -27,6 +31,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-node": "^6.0.0",
+    "vitest": "^4.1.11"
   }
 }
