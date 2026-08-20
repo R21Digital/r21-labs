@@ -65,12 +65,15 @@
      Two bands, and the split is deliberate — see the plan's "Conflict 2".
      `operational-enterprise-ai` asks for 160–220ms controls and 500–760ms
      section entrances. `review-animations` standard #4 requires sub-300ms UI.
-     Not a contradiction: Emil governs UI CONTROLS, the longer band governs
-     SECTION ENTRANCES. Controls sit at 180ms and satisfy both. Entrances take
-     the LOW end of the direction's band and must be justified at review — if
-     the reviewer flags them, Emil wins. */
+     ADJUDICATED 2026-08-19 by /review-animations: the split holds for a genuine
+     full-section scroll entrance, but NOT for the wordmark. That is a stagger
+     group entrance, STANDARDS gives it an explicit 300ms, and the "marketing
+     can be longer" carve-out does not apply because IntroAnimation ships on app
+     LOADING SCREENS — which is not marketing. Emil wins, as the vendor doc said
+     he would. --dur-section survives for Phase 4 sections only. */
   --dur-control: 180ms;
-  --dur-section: 500ms;
+  --dur-reveal: 300ms; /* stagger group entrances — the wordmark uses this */
+  --dur-section: 500ms; /* full-section scroll entrances only (Phase 4) */
 
   /* Emil standard #3: built-in CSS easings are too weak for entrances.
      These are the canonical curves from the `animate` skill's table, NOT
@@ -98,12 +101,15 @@ body {
    that must stay smooth while the page is busy loading belongs in CSS, where it
    runs off the main thread. A loading screen IS "while the page is busy", so a
    rAF-driven entrance would drop frames exactly when it is on screen.
-   transform + opacity only. Never scale(0) — nothing in the real world appears
-   from nothing, so it starts at 0.98. */
+   transform + opacity only.
+   NO SCALE, deliberately: STANDARDS' stagger recipe is translate-only, and
+   scaling TYPE renders glyphs soft mid-animation — a wordmark's whole job is
+   crisp letterforms. (scale(0.98) was here until /review-animations flagged it.
+   The never-scale(0) rule still stands for anything that does scale.) */
 @keyframes reveal-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -121,7 +127,7 @@ body {
 }
 
 .reveal {
-  animation: reveal-in var(--dur-section) var(--ease-out) both;
+  animation: reveal-in var(--dur-reveal) var(--ease-out) both;
 }
 
 /* Emil standard #8: reduced motion is GENTLER, not zero. Movement is dropped;
@@ -133,11 +139,12 @@ body {
      rule is gentler, not zero. Comprehension-aiding fades survive; movement
      does not. Reduced-motion users still get to see that something changed. */
   :root {
-    --dur-section: var(--dur-control); /* entrances shorten, they do not vanish */
+    --dur-reveal: var(--dur-control); /* entrances shorten, they do not vanish */
+    --dur-section: var(--dur-control);
   }
 
   .reveal {
-    /* Opacity only — the translate and scale are dropped, the fade is kept. */
+    /* Opacity only — the translate is dropped, the fade is kept. */
     animation: reveal-fade var(--dur-control) var(--ease-out) both;
   }
 

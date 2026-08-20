@@ -37,7 +37,9 @@ export default function Home() {
         <ul className="relative mt-12 space-y-4">
           {entries.map((entry) => (
             <li key={entry.slug}>
-              <FrostedCard interactive>
+              {/* No `interactive` yet — a hover lift is an affordance promising
+                  clickability, and these are not links until Phase 4. */}
+              <FrostedCard>
                 <p className="font-mono text-xs uppercase tracking-widest text-ink-muted">
                   {entry.type}
                 </p>

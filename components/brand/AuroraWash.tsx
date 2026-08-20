@@ -33,12 +33,17 @@ export function AuroraWash({ intensity = 0.18, className = "" }: AuroraWashProps
         className="absolute inset-0"
         style={{
           background: [
-            "radial-gradient(60% 45% at 18% 12%, var(--color-aurora-blue) 0%, transparent 70%)",
-            "radial-gradient(50% 40% at 62% 4%, var(--color-aurora-violet) 0%, transparent 72%)",
-            "radial-gradient(45% 38% at 88% 26%, var(--color-aurora-magenta) 0%, transparent 74%)",
+            // Stops widened so the falloff itself does the softening. The blur
+            // filter is a top-up, not the mechanism.
+            "radial-gradient(85% 65% at 18% 12%, var(--color-aurora-blue) 0%, transparent 78%)",
+            "radial-gradient(75% 60% at 62% 4%, var(--color-aurora-violet) 0%, transparent 80%)",
+            "radial-gradient(70% 58% at 88% 26%, var(--color-aurora-magenta) 0%, transparent 82%)",
           ].join(","),
-          // Blur keeps it reading as light rather than as three coloured blobs.
-          filter: "blur(48px)",
+          // 16px, under the 20px ceiling in review-animations/STANDARDS.md.
+          // This was blur(48px) — 2.4x over — on a full-viewport layer sitting
+          // behind the LCP content, on a site whose stated weak point is LCP.
+          // Heavy blur is expensive to paint, Safari especially.
+          filter: "blur(16px)",
         }}
       />
     </div>
