@@ -1,0 +1,40 @@
+---
+title: The MCP connector stack
+type: stack
+status: draft
+depth: deep
+verifiedOn: 2026-08-19
+situation: What R21 actually runs agents against, day to day.
+integrations:
+  - ClickUp
+  - Gmail
+  - Google Drive
+  - Google Calendar
+  - Supabase
+  - Vercel
+  - Wix
+  - Stripe
+  - Metricool
+  - GitHub
+  - AWS
+  - Context7
+  - Exa
+  - NotebookLM
+  - Playwright
+  - Hugging Face
+  - n8n
+---
+
+R21 runs agents against production systems, not demos.
+
+> **Draft on purpose — two things need Carlos before this publishes.**
+>
+> 1. 🔴 **Make is deliberately absent.** The spec's §8 list names it, but Make was retired in the
+>    2026-08-16 cutover to n8n. Publishing it would put a false claim on the one site whose entire
+>    premise is that its claims are checkable. n8n is listed instead.
+> 2. The list needs a human confirmation pass. An integration that was live in a session is not the
+>    same as one R21 depends on, and this is R21 asserting things about itself — the weakest kind of
+>    evidence.
+>
+> The homepage renders `integrations.length`, never a typed number. When this list changes the
+> count changes with it.

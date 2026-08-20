@@ -190,7 +190,24 @@ describe("guard 4 — dead links", () => {
 });
 
 describe("the real content directory", () => {
-  it("builds with zero published entries — every candidate starts a draft", () => {
-    expect(getPublishedEntries()).toEqual([]);
+  // This used to assert ZERO published entries, which was true in Phase 2 and
+  // went stale the moment Phase 4 published two. Replaced with invariants that
+  // stay true as content grows — a test pinned to a count is a test that has to
+  // be edited every time real work happens, and gets disabled instead.
+  it("passes every publishing guard", () => {
+    expect(() => getPublishedEntries()).not.toThrow();
+  });
+
+  it("gives every published entry a verification date", () => {
+    for (const entry of getPublishedEntries()) {
+      expect(entry.verifiedOn, `${entry.filePath} has no verifiedOn`).toMatch(
+        /^\d{4}-\d{2}-\d{2}$/,
+      );
+    }
+  });
+
+  it("still has at least one draft, so the draft-leak test is not vacuous", () => {
+    const drafts = readEntries().filter((entry) => entry.status !== "published");
+    expect(drafts.length).toBeGreaterThan(0);
   });
 });
