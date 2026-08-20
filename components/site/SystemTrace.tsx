@@ -21,10 +21,10 @@ export interface TraceNode {
 }
 
 export const PIPELINE: TraceNode[] = [
-  { step: "01", label: "CONNECT", detail: "Agents run against production systems, not demos" },
+  { step: "01", label: "CONNECT", detail: "Agents run against live client systems" },
   { step: "02", label: "BUILD", detail: "Where no server exists, R21 writes one" },
   { step: "03", label: "GUARD", detail: "Claims fail the build before they reach the page" },
-  { step: "04", label: "SHIP", detail: "Static, on Vercel, verified at build time" },
+  { step: "04", label: "SHIP", detail: "Static on Vercel, verified at build time" },
 ];
 
 export function SystemTrace() {

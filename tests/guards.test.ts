@@ -6,6 +6,7 @@ import { checkStaleness, MAX_AGE_DAYS } from "@/lib/guards/staleness";
 import { checkAttribution } from "@/lib/guards/attribution";
 import { assertNoDrafts, publishedOnly } from "@/lib/guards/published";
 import { checkLinks } from "@/lib/guards/links";
+import { checkRequiredFields } from "@/lib/guards/required-fields";
 import type { Entry } from "@/lib/schema";
 
 const fixture = (name: string) =>
@@ -90,6 +91,34 @@ describe("guard 2 — attribution", () => {
     expect(
       checkAttribution([entry({ type: "build", verifiedOn: "2026-08-19" })]),
     ).toEqual([]);
+  });
+});
+
+describe("spec §3 — required fields per type", () => {
+  it("accepts a build with liveUrl but no repo (either satisfies)", () => {
+    expect(
+      checkRequiredFields([
+        entry({ type: "build", liveUrl: "https://x.com", stack: "Next", problem: "p" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("fails a build with neither repo nor liveUrl", () => {
+    expect(
+      checkRequiredFields([entry({ type: "build", stack: "Next", problem: "p" })])
+        .join(" "),
+    ).toMatch(/at least one of/);
+  });
+
+  it("fails a stack entry with an EMPTY integrations array", () => {
+    // The nasty case: the key is present, so a naive "is it defined" check passes.
+    expect(
+      checkRequiredFields([entry({ type: "stack", integrations: [] })]).join(" "),
+    ).toMatch(/integrations/);
+  });
+
+  it("leaves drafts alone — half-written is what draft means", () => {
+    expect(checkRequiredFields([entry({ type: "build", status: "draft" })])).toEqual([]);
   });
 });
 

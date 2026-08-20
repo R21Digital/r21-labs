@@ -21,14 +21,14 @@ export default function Home() {
           <div>
             <Wordmark className="text-2xl" />
             <h1 className="mt-8 font-display text-4xl font-bold leading-[1.08] text-ink sm:text-5xl">
-              We don&rsquo;t just use MCPs.
+              We build the tools
               <br />
-              We build them.
+              we run on.
             </h1>
             <p className="mt-5 max-w-prose text-ink-muted">
-              The tools R21 tested and recommends, the software R21 built, and the
-              playbooks that connect them. Every entry names its source, its
-              licence, and the date it was last checked.
+              Tools we tested, software we built, and the playbooks that tie
+              them together. Every entry says where it came from and when we
+              last checked it.
             </p>
           </div>
 

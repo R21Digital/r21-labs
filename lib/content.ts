@@ -11,6 +11,7 @@ import {
 import { checkAttribution } from "./guards/attribution";
 import { checkStaleness } from "./guards/staleness";
 import { assertNoDrafts, publishedOnly } from "./guards/published";
+import { checkRequiredFields } from "./guards/required-fields";
 
 export const CONTENT_DIR = path.join(process.cwd(), "content");
 
@@ -92,7 +93,11 @@ export function readEntries(dir: string = CONTENT_DIR): Entry[] {
 export function getPublishedEntries(dir: string = CONTENT_DIR): Entry[] {
   const all = readEntries(dir);
 
-  const errors = [...checkAttribution(all), ...checkStaleness(all)];
+  const errors = [
+    ...checkRequiredFields(all),
+    ...checkAttribution(all),
+    ...checkStaleness(all),
+  ];
   if (errors.length > 0) {
     throw new Error(
       `Content guards failed (${errors.length}):\n  - ${errors.join("\n  - ")}\n\n` +
