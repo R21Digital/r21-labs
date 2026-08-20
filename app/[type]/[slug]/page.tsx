@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getPublishedEntries } from "@/lib/content";
+import { ageInDays, isStale } from "@/lib/guards/staleness";
 import type { Entry } from "@/lib/schema";
 
 /**
@@ -15,6 +16,16 @@ import type { Entry } from "@/lib/schema";
  * for operational explanation, and long-form reading is where SEO lives
  * (spec §1 goal 2), so the light surface is functional rather than decorative.
  */
+
+/**
+ * 🔴 Without this, Next's default `dynamicParams: true` leaves the route as
+ * blocking compute in the prerender manifest: an unknown /anything/anything hits
+ * the renderer at REQUEST time. That breaks the static-only claim in the README
+ * and makes draft safety depend on the runtime lookup staying guarded forever.
+ *
+ * Flagged by adversarial review 2026-08-20. Unknown paths now 404 statically.
+ */
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return getPublishedEntries().map((entry) => ({
@@ -104,6 +115,13 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
             }`}
           >
             {entry.problem ?? entry.situation}
+          </p>
+        ) : null}
+
+        {isStale(entry) ? (
+          <p className="mt-6 rounded-[var(--radius-control)] border border-accent/40 px-4 py-3 font-mono text-xs text-accent">
+            Last verified {ageInDays(entry)} days ago. Treat this entry as
+            unverified until it is re-checked against the registry.
           </p>
         ) : null}
 

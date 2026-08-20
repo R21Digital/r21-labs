@@ -1,3 +1,4 @@
+import { isStale } from "@/lib/guards/staleness";
 import type { Entry } from "@/lib/schema";
 
 /**
@@ -21,11 +22,15 @@ export interface StatRowProps {
 }
 
 export function StatRow({ entries }: StatRowProps) {
-  const builds = entries.filter((entry) => entry.type === "build").length;
-  const playbooks = entries.filter((entry) => entry.type === "playbook").length;
+  // Aged-out entries are excluded from every count. Staleness no longer fails
+  // the build (that blocked rollback without unpublishing anything) - it
+  // withdraws the claim from the numbers instead, which is the stronger remedy.
+  const fresh = entries.filter((entry) => !isStale(entry));
+  const builds = fresh.filter((entry) => entry.type === "build").length;
+  const playbooks = fresh.filter((entry) => entry.type === "playbook").length;
 
   // Published stack entries only — a draft's integration list must not surface.
-  const integrations = entries
+  const integrations = fresh
     .filter((entry) => entry.type === "stack")
     .flatMap((entry) => entry.integrations ?? []).length;
 

@@ -8,6 +8,25 @@
  */
 
 export const ENTRY_TYPES = ["tool", "build", "playbook", "stack"] as const;
+
+/**
+ * Directory -> type. Routing derives the URL from `filePath` while the
+ * attribution guard keys off `type`, so if those two disagree the guard can be
+ * walked straight past: `content/tools/x.mdx` declaring `type: build` satisfies
+ * the weaker build fields, publishes at `/tools/x`, and never has to name a
+ * source or a licence.
+ *
+ * Found by adversarial review 2026-08-20. Two identifiers for one fact is the
+ * bug; this makes the directory authoritative and rejects any mismatch.
+ */
+export const DIR_FOR_TYPE: Record<EntryTypeName, string> = {
+  tool: "tools",
+  build: "builds",
+  playbook: "playbooks",
+  stack: "stack",
+};
+
+type EntryTypeName = "tool" | "build" | "playbook" | "stack";
 export const DEPTHS = ["deep", "partial", "showcase"] as const;
 export const STATUSES = ["draft", "published"] as const;
 
@@ -140,6 +159,26 @@ export function validateShape(
     fail(
       `\`depth\` must be one of ${DEPTHS.join(" | ")} (got ${JSON.stringify(data.depth)})`,
     );
+  }
+
+  // Array fields are CAST from YAML, never checked. A scalar `integrations:
+  // "A, B"` passes as a string and the homepage then reports ONE integration -
+  // a wrong derived number, which is the exact failure this site exists to
+  // prevent. Validate the container and every element.
+  for (const field of ["integrations", "tools"] as const) {
+    const value = data[field];
+    if (value === undefined) continue;
+    if (!Array.isArray(value)) {
+      fail(
+        `\`${field}\` must be a LIST, got ${typeof value} (${JSON.stringify(value)}). ` +
+          `A scalar here silently becomes a count of 1.`,
+      );
+      continue;
+    }
+    const bad = value.filter((item) => typeof item !== "string" || item.trim() === "");
+    if (bad.length > 0) {
+      fail(`\`${field}\` contains ${bad.length} non-string or empty entr(y/ies)`);
+    }
   }
 
   // `verifiedOn` is optional on a draft, but if present it must be a real date.

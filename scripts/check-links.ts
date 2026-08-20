@@ -1,28 +1,32 @@
 /**
  * Guard 4 runner — prebuild.
  *
- * Split out from lib/content.ts because it is the only async, network-bound
- * guard; everything synchronous fails inside getPublishedEntries().
- *
- * With no published entries this makes zero requests, so it costs nothing until
- * the site actually publishes something. There is no skip flag on purpose.
+ * DEAD links (404/410) fail the build. INDETERMINATE ones are reported and do
+ * not, because a DNS blip on a dependency R21 does not control must never be
+ * able to block a security rollback while the previous deploy keeps serving the
+ * same link. Adversarial review 2026-08-20.
  */
-import { readEntries } from "../lib/content";
+import { readEntriesUnguarded } from "../lib/content";
 import { checkLinks } from "../lib/guards/links";
 
-const entries = readEntries();
+const entries = readEntriesUnguarded();
 const published = entries.filter((entry) => entry.status === "published");
+const { dead, indeterminate } = await checkLinks(entries);
 
-const errors = await checkLinks(entries);
+if (indeterminate.length > 0) {
+  console.warn(
+    `\nlink check: ${indeterminate.length} INDETERMINATE (reported, not fatal):\n  - ${indeterminate.join("\n  - ")}\n`,
+  );
+}
 
-if (errors.length > 0) {
+if (dead.length > 0) {
   console.error(
-    `\nDead outbound links (${errors.length}):\n  - ${errors.join("\n  - ")}\n\n` +
-      `Fix or remove the link. On a recommendations site a dead link makes the page look abandoned.\n`,
+    `\nDEAD outbound links (${dead.length}):\n  - ${dead.join("\n  - ")}\n\n` +
+      `These returned 404/410 — the resource is gone. Fix or remove the link.\n`,
   );
   process.exit(1);
 }
 
 console.log(
-  `link check: ${published.length} published entr${published.length === 1 ? "y" : "ies"} checked, no dead links`,
+  `link check: ${published.length} published entr${published.length === 1 ? "y" : "ies"}, no dead links`,
 );

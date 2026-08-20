@@ -3,13 +3,15 @@ import path from "node:path";
 import matter from "gray-matter";
 
 import {
+  DIR_FOR_TYPE,
   type Entry,
+  type EntryType,
   normalizeFrontmatter,
   rolledDateError,
   validateShape,
 } from "./schema";
 import { checkAttribution } from "./guards/attribution";
-import { checkStaleness } from "./guards/staleness";
+import { checkVerificationIntegrity } from "./guards/staleness";
 import { assertNoDrafts, publishedOnly } from "./guards/published";
 import { checkRequiredFields } from "./guards/required-fields";
 
@@ -32,8 +34,18 @@ function walk(dir: string): string[] {
   });
 }
 
-/** Read + shape-validate. Throws listing EVERY problem, not just the first. */
-export function readEntries(dir: string = CONTENT_DIR): Entry[] {
+/**
+ * Raw reader. Returns DRAFTS. Shape-validated only — no publishing guard has run.
+ *
+ * 🔴 NOT for routes, sitemaps, feeds, or route handlers. Those call
+ * `getPublishedEntries()`. The name is deliberately awkward so it cannot be
+ * imported by accident, and `tests/boundary.test.ts` fails the suite if anything
+ * under `app/` imports it.
+ *
+ * Adversarial review 2026-08-20: the old name was `readEntries`, exported and
+ * inviting. Calling the choke point "enforced" was wrong — it was a convention.
+ */
+export function readEntriesUnguarded(dir: string = CONTENT_DIR): Entry[] {
   const files = walk(dir);
   const entries: Entry[] = [];
   const errors: string[] = [];
@@ -44,9 +56,20 @@ export function readEntries(dir: string = CONTENT_DIR): Entry[] {
     const data = normalizeFrontmatter(parsed.data);
 
     const rolled = rolledDateError(parsed.matter, data.verifiedOn, relative);
+    const declared = data.type as EntryType;
+    const expectedDir = DIR_FOR_TYPE[declared];
+    const actualDir = relative.includes("/") ? relative.split("/")[0] : "(content root)";
+    const dirMismatch =
+      expectedDir && actualDir !== expectedDir
+        ? `${relative}: \`type: ${declared}\` but the file sits in \`${actualDir}/\` ` +
+          `(expected \`${expectedDir}/\`). Routing uses the PATH and the attribution guard ` +
+          `uses the TYPE — a mismatch publishes at /${actualDir}/ while escaping that type's rules.`
+        : null;
+
     const shapeErrors = [
       ...validateShape(data, relative),
       ...(rolled ? [rolled] : []),
+      ...(dirMismatch ? [dirMismatch] : []),
     ];
     if (shapeErrors.length > 0) {
       errors.push(...shapeErrors);
@@ -91,12 +114,12 @@ export function readEntries(dir: string = CONTENT_DIR): Entry[] {
  * `scripts/check-links.mjs` at prebuild. Everything synchronous fails here.
  */
 export function getPublishedEntries(dir: string = CONTENT_DIR): Entry[] {
-  const all = readEntries(dir);
+  const all = readEntriesUnguarded(dir);
 
   const errors = [
     ...checkRequiredFields(all),
     ...checkAttribution(all),
-    ...checkStaleness(all),
+    ...checkVerificationIntegrity(all),
   ];
   if (errors.length > 0) {
     throw new Error(
@@ -106,6 +129,9 @@ export function getPublishedEntries(dir: string = CONTENT_DIR): Entry[] {
   }
 
   const published = publishedOnly(all);
+  // Belt and braces. This used to be the only draft defence and it ran AFTER
+  // publishedOnly, so it could never fire — flagged by adversarial review. It is
+  // kept as a post-condition; the real boundary is tests/boundary.test.ts.
   assertNoDrafts(published, "getPublishedEntries");
   return published;
 }
