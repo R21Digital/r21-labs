@@ -1,38 +1,17 @@
 ---
 title: Graphify
 type: tool
-status: draft
-source: Chase AI
-sourceUrl: https://github.com/chaseai/graphify
-license: unverified
-verifiedOn: 1970-01-01
+status: published
+source: Graphify-Labs
+sourceUrl: https://github.com/Graphify-Labs/graphify
+license: Apache-2.0
+verifiedOn: 2026-08-20
 depth: showcase
-situation: Turning session notes and documents into a queryable knowledge graph.
+situation: Understanding how a whole codebase is wired without grepping it.
 ---
 
-Chase AI's Graphify, which we adapted for Windows.
+Graphify-Labs' Graphify, which R21 adapted for Windows.
 
-R21 maintains the Windows adaptation — the skill in our workspace declares
-`name: graphify-windows`. The upstream tool is Chase AI's work; the adaptation
-is ours, and both halves of that sentence matter.
+It turns a codebase and its docs, schemas and configs into a queryable knowledge graph using local deterministic AST parsing, with every edge explained and no vector store. R21 maintains the Windows adaptation; the skill in our workspace declares `graphify-windows`. The upstream tool is Graphify-Labs' work and the adaptation is ours, and both halves of that sentence matter.
 
-> **VERIFICATION ATTEMPTED 2026-08-19 — FAILED. This cannot be published.**
->
-> Checked against the registry per spec §7, not against our wiki:
->
-> - `github.com/chaseai/graphify` → **HTTP 404. The repo does not exist.** The `sourceUrl` above
->   was a guess derived from the wiki's "Chase AI" credit, and it is wrong.
-> - GitHub search for `graphify in:name` returns at least five unrelated repos — `Graphify-Labs`
->   (108,416 stars, Apache-2.0), `kbastani` (447, Apache-2.0), `Graphitti` (107, MIT), `warioddly`
->   (96, MIT), `raufer` (96, no licence). **None is obviously "Chase AI",** and the spread makes the
->   wiki's unverified "~60K stars" figure match nothing.
-> - **Our own `.claude/skills/graphify/` records no provenance** — no LICENSE, no SOURCE.md, no
->   upstream commit. Consistent with the spec's audit: 6 of 53 skills carry any.
->
-> A failed lookup is not a negative result, so this says exactly what was run rather than "couldn't
-> find it". What is still true and creditable: R21 maintains a Windows adaptation, and the skill
-> declares `name: graphify-windows`.
->
-> **Needs a human:** Carlos knows where this came from — the wiki cites a YouTube video. Until the
-> real upstream is named, the honest options are publish it with the correct URL and licence, or
-> leave it off the site. Not "publish it approximately".
+Verified against the GitHub API on 2026-08-20: Apache-2.0, 108,622 stars. Two attributions that circulated internally were wrong and are worth naming, because the site exists to stop exactly this. It is not by "Chase AI" — that is the person whose video covered it, and our wiki's section heading turned coverage into authorship. And the "~60K stars" figure was accurate to the recording date, not to now; star counts are fetched or omitted here, never carried over from a note.
