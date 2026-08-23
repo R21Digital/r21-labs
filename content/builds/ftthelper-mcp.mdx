@@ -1,0 +1,16 @@
+---
+title: FTTHelper MCP
+type: build
+status: published
+depth: partial
+verifiedOn: 2026-08-22
+repo: https://github.com/CDVolvik/ftthelper-mcp
+stack: TypeScript · MCP SDK · Supabase RLS
+problem: Getting campaign data into Claude Desktop without handing it database credentials.
+---
+
+A read-only MCP server over Fantasy Tabletop Helper's Postgres. An assistant
+gets campaigns, sessions, notes and codex entries scoped by row-level security,
+so there is one credential boundary instead of a shared service password.
+
+Verified against the GitHub API on 2026-08-22: public, MIT.

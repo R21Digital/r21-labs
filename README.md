@@ -47,9 +47,10 @@ Node 22+. No env vars, no database, no CMS.
 
 ## Known limits
 
-- **3 published entries of ~18 planned.** Release 1 is not complete.
-- **The Graphify entry cannot be published.** Verification against the registry failed — `chaseai/graphify` is a 404 and GitHub search returns five unrelated repos. Recorded in the entry itself rather than guessed at.
-- **The integration list is unconfirmed**, so the hero shows no count. Make is deliberately excluded: it was retired in the 2026-08-16 cutover to n8n.
+- **11 published entries of ~18 planned.** Release 1 is not complete.
+- **Four release-1 builds are drafts with no public artifact** — `pf-mcp-jwks`, `r21-paid-ads-mcp`, `r21-google-tooling`, `whisper-local`. Each draft records the registry searches that came up empty (2026-08-22) instead of guessing.
+- **Karpathy Skills has no LICENSE file upstream**, and the repo moved from `forrestchang` to `multica-ai`. The entry publishes with that finding stated rather than a borrowed licence value.
+- **Both playbooks are drafts pending Carlos's review** — deep-method disclosure is his call, not the build's.
 - **Entry bodies render as plain paragraphs.** Rich MDX rendering is a follow-on; the attribution block is frontmatter-driven and does not wait on it.
 - **No sitemap or RSS yet.** The draft-leak test already scans for them and will cover them the day they exist.
 

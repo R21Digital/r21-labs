@@ -1,0 +1,21 @@
+---
+title: Practice Fusion MCP
+type: build
+status: published
+depth: partial
+verifiedOn: 2026-08-22
+repo: https://github.com/CDVolvik/practice-fusion-mcp
+stack: TypeScript · MCP SDK · FHIR
+problem: Connecting an AI assistant to a Practice Fusion EHR safely, when every existing integration writes first and asks later.
+---
+
+An open-source, FHIR-first, read-only MCP server for Practice Fusion. When we
+built it, the only existing Practice Fusion MCP wrote through the UI layer;
+nothing gave an assistant structured, auditable, read-first access.
+
+The access layer is a standalone FHIR module with no MCP knowledge, so a future
+app can import it directly. Every tool invocation logs an audit record with no
+free-text PHI in it.
+
+Verified against the GitHub API and the npm registry on 2026-08-22: public,
+MIT in both places, latest npm release 0.4.0.

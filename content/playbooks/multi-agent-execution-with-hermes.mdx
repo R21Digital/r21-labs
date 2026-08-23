@@ -1,0 +1,34 @@
+---
+title: Multi-agent execution with Hermes
+type: playbook
+status: draft
+depth: deep
+situation: One developer, several machines, and more work than any single agent session can hold.
+tools:
+  - Claude Code
+  - Codex
+  - n8n
+---
+
+Draft. Needs review before publish because it describes how we actually run.
+
+The shape of it:
+
+**One central truth, many execution lanes.** Any agent on any machine can
+start a piece of work, but the state of that work lives in one shared,
+version-controlled workspace, not in anyone's chat history. A session that
+ends without writing its progress back to the canonical file did not happen.
+
+**Orchestrator, planner, coder, critic.** Non-trivial work gets classified
+first (a client site build and a data pipeline do not want the same tool
+stack), planned as steps with verifiable success criteria, executed by whatever
+lane is free, then reviewed by a second model before anything ships publicly.
+
+**The fleet is real infrastructure.** Named agent gateways run per role
+(default, finance, outreach, desktop) with process-level liveness checks at
+session start, because "the agent said it was done" and "the thing is actually
+running" are different claims. We learned to verify the second one the hard
+way: green checks stayed green while a cron silently ingested 200 records a
+day out of 1,400.
+
+Full version pending review.

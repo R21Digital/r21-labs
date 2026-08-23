@@ -13,4 +13,25 @@ tools:
 
 Draft. The playbook that carries the SEO for this site, per spec §1 goal 2.
 
-Needs writing from the real thing rather than assembled from the tool list: which surfaces got automated first, what broke, and where a human stayed in the loop on purpose.
+The short version of what we learned, written from the real thing rather than
+assembled from a tool list:
+
+**Classify every action by blast radius before you wire it.** We sort agent
+work into read, draft, and mutate. Reads and drafts are where agents run free.
+Mutations get one gate each, and the send step is the only one we ever armed
+carefully: an agent that can email a client's patient is a different machine
+from one that can summarize their inbox.
+
+**Automation lives on our own server.** n8n runs on R21 hardware for anything
+with external triggers; hosted apps stay on Vercel. We retired our Make.com
+account in August 2026 after the same scenarios proved cheaper and more
+debuggable self-hosted, and the migration was also when we learned which
+"working" automations nobody had actually read in months.
+
+**Guards belong in the build, not in a checklist.** Our curation site refuses
+to compile with an uncredited tool or a stale claim on it. The same pattern
+works everywhere: an env var that skips the check gets set once during a bad
+afternoon and never unset, so there is no skip flag.
+
+Full version pending review: which surfaces got automated first, what broke,
+and where a human stayed in the loop on purpose.
