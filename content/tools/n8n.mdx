@@ -21,8 +21,10 @@ self-hosted n8n box in August 2026 and retired the Make.com account behind them.
 The reason was pricing shape rather than features. Hosted automation is billed per
 task or per operation, so a workflow that polls a mailbox every fifteen minutes
 costs money on every poll, including the empty ones. Self-hosted, the same
-workflow costs whatever the server costs, and R21 measured its Make usage at 161
-operations a day against a 283 ceiling it was paying to keep.
+workflow costs whatever the server costs. R21 measured its own hosted usage before
+migrating and found it was paying for a ceiling well above what the workflows
+actually consumed, which is the shape of the problem rather than a fault in the
+tool.
 
 Read the licence before you assume this is open source. n8n is **fair-code** under
 the Sustainable Use License: the source is public and you may self-host it for

@@ -217,7 +217,6 @@ export default function Home() {
   const byCategory = (category: Category) =>
     catalogue.filter((entry) => entry.category === category);
 
-  const recommended = CATALOG_ORDER.flatMap(byCategory);
   const ours = byCategory("app");
   const playbooks = catalogue.filter((entry) => entry.type === "playbook");
   const replacements = catalogue.flatMap((entry) => entry.replaces ?? []);
