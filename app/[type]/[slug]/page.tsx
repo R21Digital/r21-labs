@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 
+import Link from "next/link";
+
 import { getPublishedEntries } from "@/lib/content";
 import { ageInDays, isStale } from "@/lib/guards/staleness";
+import Wordmark from "@/components/brand/Wordmark";
 import type { Entry } from "@/lib/schema";
 
 /**
@@ -39,25 +42,32 @@ function AttributionBlock({ entry }: { entry: Entry }) {
   // source/sourceUrl/licence fail the build, so if one reaches here it HAS the
   // fields — but the guard protects the data, and this protects the display.
   // A credited tool whose credit is not shown is uncredited to a reader.
+  // The hairline grid reads as a glitch when an odd row leaves a blank panel,
+  // so the last cell of an odd count spans both columns.
   const rows: Array<[string, string | undefined]> = [
     ["source", entry.source],
     ["licence", entry.license],
     ["stack", entry.stack],
     ["verified", entry.verifiedOn],
   ];
+  const filled = rows.filter(([, value]) => Boolean(value));
+  const lastSpan = filled.length % 2 === 1;
 
   return (
     <dl className="mt-8 grid gap-px border-y border-[var(--hairline)] bg-[var(--hairline)] sm:grid-cols-2">
-      {rows
-        .filter(([, value]) => Boolean(value))
-        .map(([label, value]) => (
-          <div key={label} className="bg-canvas px-4 py-3">
-            <dt className="font-mono text-[11px] uppercase tracking-widest text-ink-dim">
-              {label}
-            </dt>
-            <dd className="tabular mt-1 text-sm text-ink">{value}</dd>
-          </div>
-        ))}
+      {filled.map(([label, value], index) => (
+        <div
+          key={label}
+          className={`bg-canvas px-4 py-3 ${
+            lastSpan && index === filled.length - 1 ? "sm:col-span-2" : ""
+          }`}
+        >
+          <dt className="font-mono text-[11px] uppercase tracking-widest text-ink-dim">
+            {label}
+          </dt>
+          <dd className="tabular mt-1 text-sm text-ink">{value}</dd>
+        </div>
+      ))}
       {entry.sourceUrl || entry.liveUrl ? (
         <div className="bg-canvas px-4 py-3 sm:col-span-2">
           <dt className="font-mono text-[11px] uppercase tracking-widest text-ink-dim">
@@ -98,8 +108,14 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
       }
     >
       <div className="mx-auto w-full max-w-2xl px-6 py-16">
+        <Link
+          href="/"
+          className="inline-flex font-mono text-[11px] uppercase tracking-widest text-ink-dim transition-colors duration-[var(--dur-control)] hover:text-ink"
+        >
+          <Wordmark className="text-sm" />
+        </Link>
         <p
-          className={`font-mono text-[11px] uppercase tracking-widest ${
+          className={`mt-10 font-mono text-[11px] uppercase tracking-widest ${
             isPlaybook ? "text-chapter-ink/60" : "text-ink-dim"
           }`}
         >
