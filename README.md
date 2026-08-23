@@ -35,11 +35,16 @@ npm run verify
 
 `verify` is the real check: link guard → build → tests. `npm run dev` for local work.
 
-Node 22+. No env vars, no database, no CMS.
+Node 22+. No database, no CMS, no secrets.
+
+One optional env var: **`NEXT_PUBLIC_SITE_URL`**, the absolute origin used for canonicals, the
+sitemap, the feed and OpenGraph image URLs. It defaults to `https://r21labs.com` — the launch
+domain, not the current preview alias, deliberately (see `lib/site.ts`). Set it only on a fork or a
+staging deploy that should not claim to be production.
 
 ## Discovery
 
-Every page carries its own `<title>`, description, canonical, OpenGraph card and JSON-LD, and the site publishes `/sitemap.xml`, `/robots.txt` and `/feed.xml`.
+Every page carries its own `<title>`, description, canonical, OpenGraph card and JSON-LD, and the site publishes `/sitemap.xml`, `/robots.txt`, `/feed.xml` and `/llms.txt`.
 
 That is worth stating because until 2026-08-22 none of it existed: robots and sitemap both 404'd, and all eleven entry pages shipped the *same* title and description — eleven identical rows in a search result, on a site whose second stated goal is SEO. It was invisible because two files were written expecting a sitemap and a feed nobody had been assigned to build. `tests/discovery.test.ts` now fails the build on a duplicate title, a duplicate description, a missing canonical, a relative `og:image`, or a draft in the feed.
 
