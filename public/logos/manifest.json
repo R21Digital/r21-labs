@@ -1,0 +1,27 @@
+{
+  "context7": {
+    "file": "context7.png",
+    "shape": "square",
+    "owner": "upstash"
+  },
+  "graphify": {
+    "file": "graphify.png",
+    "shape": "square",
+    "owner": "Graphify-Labs"
+  },
+  "karpathy-skills": {
+    "file": "karpathy-skills.png",
+    "shape": "square",
+    "owner": "multica-ai"
+  },
+  "playwright": {
+    "file": "playwright.png",
+    "shape": "square",
+    "owner": "microsoft"
+  },
+  "superpowers": {
+    "file": "superpowers.jpg",
+    "shape": "circle",
+    "owner": "obra"
+  }
+}

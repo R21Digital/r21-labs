@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "check:links": "vite-node scripts/check-links.ts",
+    "logos": "vite-node scripts/fetch-logos.ts",
     "prebuild": "npm run check:links",
     "verify": "npm run build && npm run test"
   },

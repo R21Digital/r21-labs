@@ -10,6 +10,26 @@
 export const ENTRY_TYPES = ["tool", "build", "playbook", "stack"] as const;
 
 /**
+ * What the thing IS, as opposed to `type`, which is how R21 relates to it.
+ *
+ * The two are genuinely different axes and collapsing them was the old model's
+ * limit: `type: tool` covers an MCP server, a skill library and a CLI, which a
+ * visitor looking for "an MCP for my EHR" cannot browse. `type` drives the
+ * guards and the URL; `category` drives what a reader filters on.
+ *
+ * Added 2026-08-23 when the site was re-pointed from an R21 portfolio to a
+ * resource people use.
+ */
+export const CATEGORIES = ["mcp", "skills", "tool", "app"] as const;
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  mcp: "MCP servers",
+  skills: "Agent skills",
+  tool: "Developer tools",
+  app: "Apps",
+};
+
+/**
  * Directory -> type. Routing derives the URL from `filePath` while the
  * attribution guard keys off `type`, so if those two disagree the guard can be
  * walked straight past: `content/tools/x.mdx` declaring `type: build` satisfies
@@ -31,8 +51,30 @@ export const DEPTHS = ["deep", "partial", "showcase"] as const;
 export const STATUSES = ["draft", "published"] as const;
 
 export type EntryType = (typeof ENTRY_TYPES)[number];
+export type Category = (typeof CATEGORIES)[number];
 export type Depth = (typeof DEPTHS)[number];
 export type Status = (typeof STATUSES)[number];
+
+/**
+ * "This replaces a paid thing" — the site's whole hook after the 2026-08-23
+ * re-point, so it is structured data rather than a sentence in the body. It
+ * drives the card, the page, the OG card and the SEO title.
+ *
+ * 🔴 `pricedAt` and `sourceUrl` are BOTH required, and that is the point. A
+ * price is a claim, and this site's only real product is that its claims are
+ * checkable. "Replaces Zapier" with no figure is marketing; "Replaces Zapier,
+ * $29.99/mo, checked against their pricing page on this date" is a fact a
+ * reader can audit — and prices move, so the URL is what makes the staleness
+ * model mean anything here.
+ */
+export interface Replacement {
+  /** The paid product, as ITS owner writes it. */
+  tool: string;
+  /** Verbatim from the vendor's pricing page, e.g. "$29/mo". Never computed. */
+  pricedAt: string;
+  /** The vendor pricing page the figure came from. Checked by the link guard. */
+  sourceUrl: string;
+}
 
 export interface Entry {
   /** Derived from the file path, not frontmatter — a slug cannot drift from its file. */
@@ -43,6 +85,15 @@ export interface Entry {
   type: EntryType;
   status: Status;
   depth: Depth;
+
+  /** What the thing is. Required on a published tool or build — see guards. */
+  category?: Category;
+
+  /** Paid products this replaces. Absent is fine; empty-but-present is not. */
+  replaces?: Replacement[];
+
+  /** One copy-pasteable command. The single most useful line on the page. */
+  install?: string;
 
   /** Required on every PUBLISHED entry — see guards/staleness.ts. */
   verifiedOn?: string;
@@ -178,6 +229,54 @@ export function validateShape(
     const bad = value.filter((item) => typeof item !== "string" || item.trim() === "");
     if (bad.length > 0) {
       fail(`\`${field}\` contains ${bad.length} non-string or empty entr(y/ies)`);
+    }
+  }
+
+  if (data.category !== undefined && !CATEGORIES.includes(data.category as Category)) {
+    fail(
+      `\`category\` must be one of ${CATEGORIES.join(" | ")} (got ${JSON.stringify(data.category)})`,
+    );
+  }
+
+  if (data.install !== undefined && typeof data.install !== "string") {
+    fail(`\`install\` must be a string (got ${typeof data.install})`);
+  }
+
+  /**
+   * `replaces` is the site's headline claim, so its shape is checked hard.
+   *
+   * An empty ARRAY is rejected rather than treated as absent: `replaces: []`
+   * reads to an author as "I recorded that it replaces nothing", and would
+   * render as no badge at all — indistinguishable from having forgotten the
+   * field. Same failure family as the scalar-list bug above, where a wrong
+   * container silently became a count of 1.
+   */
+  if (data.replaces !== undefined) {
+    if (!Array.isArray(data.replaces)) {
+      fail(
+        `\`replaces\` must be a LIST of {tool, pricedAt, sourceUrl} (got ${typeof data.replaces})`,
+      );
+    } else if (data.replaces.length === 0) {
+      fail("`replaces` is present but empty — omit the field instead");
+    } else {
+      data.replaces.forEach((item, index) => {
+        if (typeof item !== "object" || item === null || Array.isArray(item)) {
+          fail(`\`replaces[${index}]\` must be an object with tool, pricedAt, sourceUrl`);
+          return;
+        }
+        for (const field of ["tool", "pricedAt", "sourceUrl"] as const) {
+          const value = (item as Record<string, unknown>)[field];
+          if (typeof value !== "string" || value.trim() === "") {
+            fail(
+              `\`replaces[${index}].${field}\` is required — a price with no source is not a checkable claim`,
+            );
+          }
+        }
+        const url = (item as Record<string, unknown>).sourceUrl;
+        if (typeof url === "string" && !/^https?:\/\//.test(url)) {
+          fail(`\`replaces[${index}].sourceUrl\` must be an absolute http(s) URL`);
+        }
+      });
     }
   }
 

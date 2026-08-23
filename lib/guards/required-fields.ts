@@ -15,8 +15,12 @@ import type { Entry, EntryType } from "../schema";
 
 /** From spec §3's content model table. `|` means "at least one of". */
 const REQUIRED: Record<EntryType, string[]> = {
-  tool: ["source", "sourceUrl", "license", "situation"],
-  build: ["repo|liveUrl", "stack", "problem"],
+  // `category` added 2026-08-23 with the re-point. A published tool or build
+  // that declares no category cannot appear under any heading, so it would
+  // render nowhere on the catalog while looking complete in the file — the
+  // same "asserts nothing checkable" failure this guard exists for.
+  tool: ["source", "sourceUrl", "license", "situation", "category"],
+  build: ["repo|liveUrl", "stack", "problem", "category"],
   playbook: ["situation", "tools"],
   stack: ["integrations"],
 };

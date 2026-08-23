@@ -102,9 +102,27 @@ describe("spec §3 — required fields per type", () => {
   it("accepts a build with liveUrl but no repo (either satisfies)", () => {
     expect(
       checkRequiredFields([
-        entry({ type: "build", liveUrl: "https://x.com", stack: "Next", problem: "p" }),
+        entry({
+          type: "build",
+          liveUrl: "https://x.com",
+          stack: "Next",
+          problem: "p",
+          category: "app",
+        }),
       ]),
     ).toEqual([]);
+  });
+
+  it("fails a published entry with no category — it would render under no heading", () => {
+    // Added with the 2026-08-23 re-point. The catalog groups by `category`, so
+    // an entry without one is complete-looking in its file and invisible on the
+    // site. Silent absence from a listing is the failure mode this whole guard
+    // family exists for.
+    expect(
+      checkRequiredFields([
+        entry({ type: "build", liveUrl: "https://x.com", stack: "Next", problem: "p" }),
+      ]).join(" "),
+    ).toMatch(/category/);
   });
 
   it("fails a build with neither repo nor liveUrl", () => {

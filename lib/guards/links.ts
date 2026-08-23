@@ -38,11 +38,25 @@ export interface LinkCheckOptions {
   fetchImpl?: typeof fetch;
 }
 
-/** Every outbound URL an entry claims. */
+/**
+ * Every outbound URL an entry claims.
+ *
+ * 🔴 Includes each `replaces[].sourceUrl` — the vendor pricing page a price
+ * figure was read off. Added 2026-08-23 with the re-point.
+ *
+ * Leaving those out would have been the worst possible omission here: the
+ * price is the site's headline claim, vendors reorganise pricing pages far more
+ * often than they move a repo, and a dead pricing link is precisely how "$29/mo"
+ * quietly becomes a number nobody can check. The guard has to cover the claim
+ * that is most likely to rot, not just the ones that were already listed.
+ */
 export function outboundUrls(entry: Entry): string[] {
-  return [entry.sourceUrl, entry.repo, entry.liveUrl].filter(
-    (url): url is string => typeof url === "string" && url.trim() !== "",
-  );
+  return [
+    entry.sourceUrl,
+    entry.repo,
+    entry.liveUrl,
+    ...(entry.replaces ?? []).map((replacement) => replacement.sourceUrl),
+  ].filter((url): url is string => typeof url === "string" && url.trim() !== "");
 }
 
 export interface LinkReport {

@@ -7,6 +7,7 @@ import { getPublishedEntries } from "@/lib/content";
 import { ageInDays, isStale } from "@/lib/guards/staleness";
 import Wordmark from "@/components/brand/Wordmark";
 import EntryBody from "@/components/site/EntryBody";
+import EntryLogo from "@/components/site/EntryLogo";
 import JsonLd from "@/components/site/JsonLd";
 import {
   ORGANIZATION,
@@ -15,7 +16,7 @@ import {
   canonicalUrl,
   entryDescription,
 } from "@/lib/site";
-import type { Entry } from "@/lib/schema";
+import { CATEGORY_LABEL, type Entry } from "@/lib/schema";
 
 /**
  * Entry pages.
@@ -139,6 +140,83 @@ function entrySchema(entry: Entry): Record<string, unknown> {
   };
 }
 
+/**
+ * What this replaces, and what that costs.
+ *
+ * Rendered above the attribution block because after the 2026-08-23 re-point it
+ * is the reason most visitors are on the page. Every figure links to the
+ * vendor's own pricing page — the link guard checks those URLs alongside the
+ * repo links, precisely because a pricing page moves more often than a repo
+ * does and a dead one is how "$29/mo" becomes a number nobody can check.
+ */
+function ReplacesBlock({ entry }: { entry: Entry }) {
+  if (!entry.replaces?.length) return null;
+
+  return (
+    <section className="mt-8 rounded-[var(--radius-card)] border border-accent/25 bg-accent/[0.05] p-5">
+      <h2 className="font-mono text-[11px] uppercase tracking-widest text-accent">
+        Replaces
+      </h2>
+      <ul className="mt-3 space-y-2.5">
+        {entry.replaces.map((replacement) => (
+          <li
+            key={replacement.tool}
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+          >
+            <span className="font-display text-lg font-semibold text-ink">
+              {replacement.tool}
+            </span>
+            <a
+              href={replacement.sourceUrl}
+              className="tabular font-mono text-sm text-accent underline underline-offset-4"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {replacement.pricedAt}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-ink-dim">
+        Prices are quoted from the vendor&apos;s own pricing page on {entry.verifiedOn} and
+        link to it. Vendors change pricing; check before you decide.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The install command.
+ *
+ * One copy-pasteable line, high on the page. On a resource site this is the
+ * single most useful element there is, and its absence was a fair part of why
+ * an entry page gave a reader nothing they could not get from the repo in one
+ * click.
+ */
+function InstallBlock({ entry, isChapter }: { entry: Entry; isChapter: boolean }) {
+  if (!entry.install) return null;
+  return (
+    <section className="mt-8">
+      <h2
+        className={`font-mono text-[11px] uppercase tracking-widest ${
+          isChapter ? "text-chapter-ink/60" : "text-ink-dim"
+        }`}
+      >
+        Install
+      </h2>
+      <pre
+        className={`mt-2 overflow-x-auto rounded-[var(--radius-card)] border p-4 font-mono text-sm ${
+          isChapter
+            ? "border-black/10 bg-black/[0.04] text-chapter-ink"
+            : "border-[var(--hairline)] bg-surface text-ink"
+        }`}
+      >
+        <code>{entry.install}</code>
+      </pre>
+    </section>
+  );
+}
+
 function AttributionBlock({ entry }: { entry: Entry }) {
   // 🔴 Always rendered. The attribution guard makes a published `tool` without
   // source/sourceUrl/licence fail the build, so if one reaches here it HAS the
@@ -219,11 +297,16 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
             isPlaybook ? "text-chapter-ink/60" : "text-ink-dim"
           }`}
         >
-          {entry.type}
+          {entry.category ? CATEGORY_LABEL[entry.category] : entry.type}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
-          {entry.title}
-        </h1>
+
+        {/* The mark sits beside the title rather than above it: at this size it
+            reads as identification, which is what it is, instead of as a hero
+            image the entry does not have. */}
+        <div className="mt-3 flex items-center gap-4">
+          {isPlaybook ? null : <EntryLogo entry={entry} size={52} />}
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">{entry.title}</h1>
+        </div>
         {entry.problem ?? entry.situation ? (
           <p
             className={`mt-4 text-lg ${
@@ -240,6 +323,10 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
             unverified until it is re-checked against the registry.
           </p>
         ) : null}
+
+        <ReplacesBlock entry={entry} />
+
+        <InstallBlock entry={entry} isChapter={isPlaybook} />
 
         <AttributionBlock entry={entry} />
 
