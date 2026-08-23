@@ -23,5 +23,15 @@
     "file": "superpowers.jpg",
     "shape": "circle",
     "owner": "obra"
+  },
+  "faster-whisper": {
+    "file": "faster-whisper.png",
+    "shape": "square",
+    "owner": "SYSTRAN"
+  },
+  "n8n": {
+    "file": "n8n.png",
+    "shape": "square",
+    "owner": "n8n-io"
   }
 }

@@ -1,0 +1,34 @@
+---
+title: faster-whisper
+type: tool
+category: tool
+status: published
+depth: showcase
+verifiedOn: 2026-08-23
+source: SYSTRAN
+sourceUrl: https://github.com/SYSTRAN/faster-whisper
+license: MIT
+situation: Paying per minute to transcribe audio that never needed to leave the machine.
+install: pip install faster-whisper
+replaces:
+  - tool: OpenAI Whisper API
+    pricedAt: $0.006/min
+    sourceUrl: https://developers.openai.com/api/docs/pricing
+---
+
+A reimplementation of OpenAI's Whisper on CTranslate2. Same model weights, run on
+your own hardware.
+
+R21 transcribes meetings and client calls with this and has a standing rule never
+to send that audio to a paid transcription API. The cost argument is real but
+secondary — at $0.006 a minute, an hour of recording is about 36 cents, which
+nobody would notice. The reason it matters is that the recordings are client
+conversations, and some of them touch medical practices. Audio that stays on the
+machine cannot be retained, subpoenaed, or used as training data by a third party,
+and that is a much easier position to defend than a data-processing agreement.
+
+Practical note: the speed claim depends on hardware. On CPU it is faster than the
+reference implementation but not fast. The gains people quote come from a GPU with
+CTranslate2's int8 quantisation.
+
+Verified against the GitHub API on 2026-08-23: 25,046 stars, MIT.
