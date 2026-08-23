@@ -134,6 +134,75 @@ function Section({
   );
 }
 
+/**
+ * Playbooks get their own row shape rather than reusing `EntryCard`.
+ *
+ * 🔴 They were unreachable until 2026-08-23. The homepage groups by `category`,
+ * and `category` is only required on a published `tool` or `build` — so
+ * `byCategory()` never matched a playbook and nothing on the site linked to one.
+ * Both playbooks would have published as orphan pages reachable only from the
+ * sitemap, on the surface spec §1 goal 2 calls the site's main SEO asset.
+ *
+ * Same shape as the missing discovery layer: no task row ever owned the route
+ * in, while `EntryBody` was already built to render their tables.
+ *
+ * Not an `EntryCard` because that card's footer is `source · licence · date`,
+ * and a playbook has no source and no licence — it would render " · R21 · " and
+ * assert nothing, which is the failure the guards exist to prevent. A playbook
+ * is something you read, so the row shows what it is about and how long it is.
+ */
+function PlaybookSection({ entries }: { entries: Entry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <section id="playbooks" className="scroll-mt-8">
+      <div className="flex items-baseline gap-2.5 border-b border-[var(--hairline)] pb-3">
+        <h2 className="font-display text-xl font-semibold text-ink">Playbooks</h2>
+        <span className="tabular font-mono text-[11px] uppercase tracking-widest text-ink-dim">
+          {entries.length}
+        </span>
+      </div>
+      <p className="mt-2.5 max-w-2xl text-sm text-ink-muted">
+        How R21 wires and runs the things above, written from the real thing rather than
+        assembled from a tool list. Long-form.
+      </p>
+      <ul className="mt-5 space-y-3.5">
+        {entries.map((entry) => (
+          <li key={entry.slug}>
+            <Link
+              href={canonicalPath(entry)}
+              className="block rounded-[var(--radius-card)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+            >
+              <FrostedCard interactive>
+                <h3 className="font-display text-base font-semibold leading-tight text-ink">
+                  {entry.title}
+                </h3>
+                <p className="mt-1.5 max-w-2xl text-sm leading-snug text-ink-muted">
+                  {entry.situation}
+                </p>
+                <p className="tabular mt-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-dim">
+                  {readingMinutes(entry)} min read · {entry.verifiedOn}
+                </p>
+              </FrostedCard>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Reading time, counted from the body rather than typed in frontmatter.
+ *
+ * Same rule as every other number on this page: a typed one drifts the moment
+ * the text is edited and nobody notices. 220 wpm is the usual prose estimate;
+ * the floor of 1 stops a short entry rendering "0 min read".
+ */
+function readingMinutes(entry: Entry): number {
+  const words = entry.body.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 220));
+}
+
 const BLURB: Record<Category, string> = {
   mcp: "Servers that connect an assistant to a real system — a database, an EHR, a docs index — without handing it credentials.",
   skills: "Instruction libraries that change how a coding agent works, rather than what it can reach.",
@@ -150,6 +219,7 @@ export default function Home() {
 
   const recommended = CATALOG_ORDER.flatMap(byCategory);
   const ours = byCategory("app");
+  const playbooks = catalogue.filter((entry) => entry.type === "playbook");
   const replacements = catalogue.flatMap((entry) => entry.replaces ?? []);
 
   return (
@@ -234,6 +304,8 @@ export default function Home() {
           blurb={BLURB.app}
           entries={ours}
         />
+
+        <PlaybookSection entries={playbooks} />
 
         {catalogue.length === 0 ? (
           <p className="text-ink-muted">

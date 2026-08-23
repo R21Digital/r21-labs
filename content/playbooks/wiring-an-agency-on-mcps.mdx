@@ -1,8 +1,9 @@
 ---
 title: Wiring an agency on MCPs
 type: playbook
-status: draft
-depth: deep
+status: published
+depth: partial
+verifiedOn: 2026-08-23
 situation: Running a small agency where agents touch real client systems.
 tools:
   - n8n
@@ -11,27 +12,158 @@ tools:
   - ClickUp
 ---
 
-Draft. The playbook that carries the SEO for this site, per spec §1 goal 2.
+Most writing about MCP servers is about getting one connected. This is about what
+changes once several are, and the assistant is pointed at systems that hold other
+people's data.
 
-The short version of what we learned, written from the real thing rather than
-assembled from a tool list:
+R21 runs agents against production: client sites, an EHR, a billing account, a
+task tracker, a mail account. Nothing here is theoretical, and none of the useful
+lessons came from the connecting part. They came from the six months afterwards.
 
-**Classify every action by blast radius before you wire it.** We sort agent
-work into read, draft, and mutate. Reads and drafts are where agents run free.
-Mutations get one gate each, and the send step is the only one we ever armed
-carefully: an agent that can email a client's patient is a different machine
-from one that can summarize their inbox.
+## Sort every action by blast radius before you wire it
 
-**Automation lives on our own server.** n8n runs on R21 hardware for anything
-with external triggers; hosted apps stay on Vercel. We retired our Make.com
-account in August 2026 after the same scenarios proved cheaper and more
-debuggable self-hosted, and the migration was also when we learned which
-"working" automations nobody had actually read in months.
+The instinct is to organise connectors by system — one for the database, one for
+mail, one for the calendar. That grouping is useless when you have to decide what
+an agent may do unsupervised, because a single system spans the entire risk range.
+Reading a mailbox and sending from it are not the same act.
 
-**Guards belong in the build, not in a checklist.** Our curation site refuses
-to compile with an uncredited tool or a stale claim on it. The same pattern
-works everywhere: an env var that skips the check gets set once during a bad
-afternoon and never unset, so there is no skip flag.
+So the sort is by what an action does, not what it touches:
 
-Full version pending review: which surfaces got automated first, what broke,
-and where a human stayed in the loop on purpose.
+| Class | Example | Who approves |
+|---|---|---|
+| **Read** | Query a deploy, diff a build, summarise our own inbox | Nobody, when the data is ours |
+| **Draft** | Compose a reply, prepare a record, stage a change | Nobody to produce it. A person to release it |
+| **Mutate** | Send, publish, charge, delete, write to a client system | A person, every time |
+
+Drafting is where most of the useful work is, and it is cheap to get wrong. A bad
+draft wastes a minute. A bad send cannot be recalled.
+
+The one that matters most in this business sits in the third row. An agent that
+can summarise a clinic's inbox and an agent that can email that clinic's patients
+are different machines with different consequences, and the second one does not
+exist here. R21 routes a lead to the client; the client's office makes the call.
+That is a standing rule, not a setting, and the connector is built so the capability
+is absent rather than merely disabled.
+
+## Reading is not free when the data is someone else's
+
+The table above sorts by what an action does. That is only half of it, and the half
+that is easy to get wrong is the other one: whose data the action touches.
+
+A read has no blast radius in the system it reads from. It has a large one in the
+system doing the reading, because whatever comes back is now in a transcript, and
+that transcript lives wherever transcripts live. Pull a patient chart to answer a
+harmless question and you have moved protected health information into a log you did
+not think of as a medical record.
+
+So reads get a second sort, by whose data it is:
+
+- **Ours** — deploys, our own repositories, our own mail, our own analytics. Agents
+  run free.
+- **A client's operational data** — their site, their listings, their campaign
+  metrics. Free to read, because it is the work.
+- **A client's records about a third person** — patients, customers, applicants.
+  Not free, and the controls belong in the connector rather than in the habit of
+  whoever is driving it.
+
+Worth separating two things that look the same. Reading a patient record *through a
+purpose-built connector* is a designed act: the server decides which fields come
+back, and the call is logged. Reading the same record by pointing a browser
+automation at a logged-in EHR is not, because an accessibility snapshot serialises
+whatever is on screen into the transcript, including values the screen was masking.
+Same data, same clinician, completely different exposure. We do the first and not
+the second.
+
+## Build the limit into the connector, not the prompt
+
+A prompt that says "do not write" is a request. The model usually honours it, which
+is worse than if it never did, because you stop checking.
+
+The EHR connector is the clearest case. Every off-the-shelf integration in that
+category is built to write, because writing is the product. Ours reads, and not
+because it is told to: the server registers eighteen tools, every one of them a
+`get` or a `search`, and the FHIR client issues no POST, PUT, PATCH or DELETE
+anywhere. The single POST in the codebase is the OAuth token exchange. There is no
+write path to turn off, because none was built.
+
+Two more properties fall out of putting a server in the middle. The assistant never
+holds the credentials; it receives the results of calls the server made. And every
+response passes through a shaper that names the fields allowed out, so what reaches
+the model is a decided subset rather than whatever the API returned. A FHIR resource
+is large, and most of it is never needed to answer the question being asked.
+
+Which fields those should be, in a clinical context, is a privacy question rather
+than an engineering one, and it is not settled by the connector being read-only.
+Least-privilege on the response is the easy half. The rest — what may reach a model
+provider at all, under which agreement, retained for how long — is decided outside
+the code and is not what this page is about.
+
+This is the difference between a policy and a property. A policy is something you
+maintain. A property is something that stays true while you are not looking.
+
+## Guards belong in the build
+
+The site you are reading enforces its own rules at compile time. A published **tool**
+entry that credits no source or names no licence fails the build, as does any entry
+of any type carrying a dead outbound link. The build fails. It does not warn.
+
+The attribution rule is scoped to tool entries on purpose, and it is worth being
+exact about that rather than claiming more than the code does. Third-party software
+is the thing this site could plausibly get wrong by borrowing without credit. The
+page you are reading is a playbook, so it has no upstream to credit and the guard
+does not apply to it.
+
+There is deliberately no environment variable that skips the check. A skip flag
+gets set once during a bad afternoon and never unset, and six months later nobody
+remembers it is there.
+
+The standing rule behind it: every fix ships with the thing that would have caught
+it, or the same fix gets made again in a year.
+
+## Verify at the side effect, never at the caller
+
+This is the single most expensive lesson on the list, and it recurs in a new
+disguise every few weeks.
+
+A messaging API returned `success` for messages it never delivered — the account
+had been unlinked, and the endpoint reported on accepting the request rather than
+on sending anything. Every log was green. A lead relay reported healthy for weeks
+while the form feeding it had been silently dead; the relay was fine, it simply had
+nothing to relay. A batch of environment variables was added across three routes
+and every call returned `200`, but only two of the three had actually landed.
+
+In each case the status code answered a narrower question than the one being asked.
+It reported that the call was accepted, not that the thing we wanted had happened.
+When an action has its effect somewhere else, go and look at the somewhere else.
+
+The practical version, which has caught more than any monitoring we have added:
+**count the results back.** If three sends should have happened, count three
+arrivals. If a job should have processed 1,400 records, count 1,400 rows — a
+nightly sync on one of our own apps quietly processed the same newest 200 every
+run for weeks, and every health check stayed green throughout, because each run
+genuinely succeeded at doing the wrong thing.
+
+## Where automation runs decides what it costs
+
+Anything with an external trigger runs on n8n on R21's own hardware. Hosted
+applications stay on Vercel. Domains sit at Cloudflare.
+
+The reason is pricing shape rather than features. Hosted automation bills per task
+or per operation, so a workflow polling a mailbox every fifteen minutes is charged
+for every poll, including the empty ones — and the empty ones are almost all of
+them. Self-hosted, that same workflow costs whatever the server costs, and the
+number of times it runs stops being a budget decision.
+
+The migration was worth it for a second reason nobody plans for. Moving the
+workflows meant reading them, and reading them is how we found which "working"
+automations had not actually worked in months.
+
+## What this does not solve
+
+Self-hosting moves the failure mode rather than removing it. The box is now yours
+to keep alive, and a machine nobody is watching is a machine that is down. The
+blast-radius sort needs a person to apply it, and the classification is a judgement
+call at the edges. Guards in the build catch what you thought to check.
+
+None of this makes an agent trustworthy. It keeps the untrustworthy parts small and
+reversible, which is a lower bar and one you can actually clear.
