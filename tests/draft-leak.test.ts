@@ -24,10 +24,23 @@ function builtTextFiles(): string[] {
     fs.readdirSync(dir, { withFileTypes: true }).flatMap((item) => {
       const full = path.join(dir, item.name);
       if (item.isDirectory()) return walk(full);
-      // .html today; sitemap.xml and rss.xml arrive in Phase 4 and are picked
-      // up automatically — the test grows with the site rather than needing a
-      // reminder to extend it.
-      return /\.(html|xml|txt)$/.test(item.name) ? [full] : [];
+      /**
+       * 🔴 `.body` and `.rsc`, not just `.html`.
+       *
+       * This used to read `/\.(html|xml|txt)$/` with a comment promising that
+       * "sitemap.xml and rss.xml arrive in Phase 4 and are picked up
+       * automatically — the test grows with the site". It does not. Next emits
+       * a metadata route as `sitemap.xml.body`, `feed.xml.body`,
+       * `llms.txt.body` — the extension is a payload marker, not the served
+       * name — so the pattern matched none of them. When those routes shipped
+       * on 2026-08-22 the test stayed green while scanning nothing new, which
+       * is the precise shape of failure §10 warns about.
+       *
+       * `.rsc` is the React Server Component payload served on soft
+       * navigation. It is rendered content by another name, and a leak there
+       * is as real as a leak in HTML.
+       */
+      return /\.(html|xml|txt|body|rsc)$/.test(item.name) ? [full] : [];
     });
   return walk(BUILD_DIR);
 }

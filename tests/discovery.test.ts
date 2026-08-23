@@ -178,6 +178,26 @@ describe("discovery layer — build output", () => {
     }
   });
 
+  it("publishes llms.txt, listing published entries and no drafts", () => {
+    // R21 sells AI-search visibility, and `llms_txt` is one of the checks
+    // R21's own fleet canary runs against CLIENT sites. On 2026-08-22 the
+    // canary reported `MISSING r21labs/llms_txt` against this site.
+    const file = builtFile("llms.txt");
+    expect(file, "No llms.txt in build output.").not.toBeNull();
+
+    const body = fs.readFileSync(file as string, "utf8");
+    const all = readEntriesUnguarded();
+
+    for (const entry of all.filter((e) => e.status === "published")) {
+      expect(body.includes(entry.title), `${entry.title} missing from llms.txt.`).toBe(true);
+    }
+    for (const draft of all.filter((e) => e.status !== "published")) {
+      expect(body.includes(draft.slug), `Draft "${draft.slug}" leaked into llms.txt.`).toBe(
+        false,
+      );
+    }
+  });
+
   it("keeps drafts out of the feed", () => {
     const feed = builtFile("feed.xml");
     expect(feed, "No RSS feed in build output.").not.toBeNull();
