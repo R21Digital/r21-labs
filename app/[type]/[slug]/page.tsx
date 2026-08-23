@@ -100,11 +100,22 @@ export async function generateMetadata({
 /**
  * Structured data, shaped by what the entry actually IS.
  *
- * A tool R21 recommends and an app R21 built are different claims, and
- * flattening both to `Article` would misdescribe them. A playbook genuinely is
- * an article. `SoftwareSourceCode` carries the licence and repository fields
- * that this site's whole guard model exists to keep honest, so the machine
- * reading matches the attribution block a human sees.
+ * 🔴 Rewritten 2026-08-23 after `/codex:adversarial-review` caught the first
+ * version emitting **every** non-playbook entry as `SoftwareSourceCode`. That
+ * published two materially false claims to crawlers: CivicaPR, a deployed web
+ * app with no public repository, was described as source code, and its
+ * `programmingLanguage` was `"Next.js · Supabase · Stripe · Vercel"` — a
+ * deployment stack, not a language. "The MCP connector stack", which is a list,
+ * was source code too.
+ *
+ * Wrong structured data is the worst possible defect on this particular site:
+ * the machine-readable layer contradicted the human-readable one on a site
+ * whose only product is that its claims are checkable. Nothing rendered
+ * differently, so it would never have been noticed by looking.
+ *
+ * The discriminator is `category`, because that is the field that records what
+ * a thing IS, as opposed to `type`, which records R21's relationship to it.
+ * Asserted per-kind in tests/discovery.test.ts.
  */
 function entrySchema(entry: Entry): Record<string, unknown> {
   const base = {
@@ -129,13 +140,42 @@ function entrySchema(entry: Entry): Record<string, unknown> {
     };
   }
 
+  // A stack entry is a curated list of things, not a thing.
+  if (entry.type === "stack") {
+    return {
+      ...base,
+      "@type": "ItemList",
+      itemListElement: (entry.integrations ?? []).map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item,
+      })),
+    };
+  }
+
+  // A deployed application. `url` is the live product, not this page, because
+  // that is what a SoftwareApplication's url means.
+  if (entry.category === "app") {
+    return {
+      ...base,
+      "@type": "SoftwareApplication",
+      applicationCategory: "WebApplication",
+      ...(entry.liveUrl ? { url: entry.liveUrl, sameAs: canonicalUrl(entry) } : {}),
+      // `stack` is a deployment stack — the correct schema.org property for it
+      // is runtimePlatform. It is emphatically NOT programmingLanguage.
+      ...(entry.stack ? { runtimePlatform: entry.stack } : {}),
+      ...(entry.license ? { license: entry.license } : {}),
+    };
+  }
+
   return {
     ...base,
     "@type": "SoftwareSourceCode",
     ...(entry.license ? { license: entry.license } : {}),
-    ...(entry.sourceUrl ? { codeRepository: entry.sourceUrl } : {}),
-    ...(entry.repo ? { codeRepository: entry.repo } : {}),
-    ...(entry.stack ? { programmingLanguage: entry.stack } : {}),
+    ...(entry.repo ?? entry.sourceUrl
+      ? { codeRepository: entry.repo ?? entry.sourceUrl }
+      : {}),
+    ...(entry.stack ? { runtimePlatform: entry.stack } : {}),
     ...(entry.source ? { creditText: entry.source } : {}),
   };
 }

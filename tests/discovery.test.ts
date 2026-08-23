@@ -218,6 +218,55 @@ describe("discovery layer — build output", () => {
     }
   });
 
+  it("gives each entry the JSON-LD type it actually is", () => {
+    /**
+     * `/codex:adversarial-review` 2026-08-23: every non-playbook entry was
+     * emitted as SoftwareSourceCode, so the deployed CivicaPR app was published
+     * to crawlers as source code with
+     * `programmingLanguage: "Next.js · Supabase · Stripe · Vercel"`, and a
+     * curated list was source code too.
+     *
+     * Nothing rendered differently, which is why looking at the page could
+     * never have caught it. On a site whose product is checkable claims, the
+     * machine-readable layer contradicting the human-readable one is the worst
+     * defect available, so it gets an assertion rather than a comment.
+     */
+    const EXPECTED: Record<string, string> = {
+      playbook: "Article",
+      stack: "ItemList",
+      app: "SoftwareApplication",
+    };
+
+    for (const entry of getPublishedEntries()) {
+      const file = path.join(
+        BUILD_DIR,
+        `${canonicalPath(entry).replace(/^\//, "")}.html`,
+      );
+      if (!fs.existsSync(file)) continue;
+
+      const blocks = [
+        // `[\s\S]` rather than the `s` flag — the tsconfig target predates it.
+        ...fs.readFileSync(file, "utf8").matchAll(
+          /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
+        ),
+      ].map(([, json]) => JSON.parse(json.replace(/\\u003c/g, "<").replace(/\\u003e/g, ">").replace(/\\u0026/g, "&")));
+
+      // The WebSite block from the layout is always present; find the entry's.
+      const entryBlock = blocks.find((b) => b["@type"] !== "WebSite");
+      expect(entryBlock, `${entry.slug}: no entry-level JSON-LD`).toBeTruthy();
+
+      const expected =
+        EXPECTED[entry.type] ?? EXPECTED[entry.category ?? ""] ?? "SoftwareSourceCode";
+      expect(entryBlock["@type"], `${entry.slug} should be ${expected}`).toBe(expected);
+
+      // The specific false claim that was shipping.
+      expect(
+        entryBlock.programmingLanguage,
+        `${entry.slug}: a deployment stack is not a programmingLanguage`,
+      ).toBeUndefined();
+    }
+  });
+
   it("describes itself to machines with structured data", () => {
     // Goal 2 of the spec is AI citability. A crawler that cannot tell what
     // kind of thing a page is has to guess from prose.

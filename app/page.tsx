@@ -160,8 +160,19 @@ export default function Home() {
         <div className="relative mx-auto w-full max-w-5xl px-6 pb-14 pt-16 sm:pb-16 sm:pt-20">
           <Wordmark className="text-xl" />
 
+          {/* 🔴 Was "Open source we actually run." until 2026-08-23.
+              `/codex:adversarial-review` flagged it against the n8n entry
+              published the same day, which states its Sustainable Use License
+              is fair-code and NOT OSI-approved. Both claims rendered on the
+              same page: the headline asserted open source while an entry below
+              it disproved that for one of its own items.
+
+              Small wording, but this is the one site where it cannot stand —
+              the whole product is that its claims survive being checked. The
+              replaces hook moves into the subline, which is conditional and
+              therefore stays true as the catalog grows. */}
           <h1 className="mt-10 max-w-3xl font-display text-4xl font-bold leading-[1.05] text-ink sm:text-5xl">
-            Open source we actually run.
+            The tools we actually run.
           </h1>
 
           {/* Honest about the hook: `replaces` is prominent where it is true and
@@ -169,9 +180,9 @@ export default function Home() {
               hero that promised otherwise would be the exact defect this site
               exists to avoid. */}
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
-            MCP servers, agent skills and developer tools R21 uses in production — each one
-            credited, licence-checked and dated. Where something replaces a product you would
-            otherwise pay for, we say so and link the price.
+            Open-source and source-available MCP servers, agent skills and developer tools R21
+            uses in production — each one credited, licence-checked and dated. Where something
+            replaces a product you would otherwise pay for, we say so and link the price.
           </p>
 
           {/* Jump strip. Doubles as the "what's in here" summary that the old
