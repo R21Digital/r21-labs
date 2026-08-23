@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import Link from "next/link";
@@ -5,6 +6,15 @@ import Link from "next/link";
 import { getPublishedEntries } from "@/lib/content";
 import { ageInDays, isStale } from "@/lib/guards/staleness";
 import Wordmark from "@/components/brand/Wordmark";
+import EntryBody from "@/components/site/EntryBody";
+import JsonLd from "@/components/site/JsonLd";
+import {
+  ORGANIZATION,
+  SITE_NAME,
+  canonicalPath,
+  canonicalUrl,
+  entryDescription,
+} from "@/lib/site";
 import type { Entry } from "@/lib/schema";
 
 /**
@@ -35,6 +45,98 @@ export function generateStaticParams() {
     type: entry.filePath.split("/")[0],
     slug: entry.slug,
   }));
+}
+
+/** The one lookup both the page and its metadata use, so they cannot disagree. */
+function findEntry(type: string, slug: string): Entry | undefined {
+  return getPublishedEntries().find(
+    (candidate) => candidate.slug === slug && candidate.filePath.startsWith(`${type}/`),
+  );
+}
+
+/**
+ * Per-entry metadata.
+ *
+ * 🔴 This is the fix for the site's worst defect. Until 2026-08-22 no page
+ * exported metadata, so all eleven entry pages inherited the root layout's
+ * title and description verbatim — eleven identical rows in a search result,
+ * and eleven identical link previews, on a site whose second stated goal is
+ * SEO. Asserted in tests/discovery.test.ts, which fails on ANY duplicate.
+ *
+ * The description is the entry's own `problem`/`situation` line, which is the
+ * sentence a human already wrote to say what the thing is for. Reusing it
+ * beats generating a summary that could drift from the page.
+ */
+export async function generateMetadata({
+  params,
+}: PageProps<"/[type]/[slug]">): Promise<Metadata> {
+  const { type, slug } = await params;
+  const entry = findEntry(type, slug);
+  if (!entry) return {};
+
+  const description = entryDescription(entry);
+  const url = canonicalUrl(entry);
+
+  return {
+    title: entry.title,
+    description,
+    alternates: { canonical: canonicalPath(entry) },
+    openGraph: {
+      type: "article",
+      url,
+      title: `${entry.title} · ${SITE_NAME}`,
+      description,
+      siteName: SITE_NAME,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${entry.title} · ${SITE_NAME}`,
+      description,
+    },
+  };
+}
+
+/**
+ * Structured data, shaped by what the entry actually IS.
+ *
+ * A tool R21 recommends and an app R21 built are different claims, and
+ * flattening both to `Article` would misdescribe them. A playbook genuinely is
+ * an article. `SoftwareSourceCode` carries the licence and repository fields
+ * that this site's whole guard model exists to keep honest, so the machine
+ * reading matches the attribution block a human sees.
+ */
+function entrySchema(entry: Entry): Record<string, unknown> {
+  const base = {
+    "@context": "https://schema.org",
+    name: entry.title,
+    url: canonicalUrl(entry),
+    description: entryDescription(entry),
+    ...(entry.verifiedOn ? { dateModified: entry.verifiedOn } : {}),
+    publisher: {
+      "@type": "Organization",
+      name: ORGANIZATION.name,
+      url: ORGANIZATION.url,
+    },
+  };
+
+  if (entry.type === "playbook") {
+    return {
+      ...base,
+      "@type": "Article",
+      headline: entry.title,
+      author: { "@type": "Organization", name: ORGANIZATION.name },
+    };
+  }
+
+  return {
+    ...base,
+    "@type": "SoftwareSourceCode",
+    ...(entry.license ? { license: entry.license } : {}),
+    ...(entry.sourceUrl ? { codeRepository: entry.sourceUrl } : {}),
+    ...(entry.repo ? { codeRepository: entry.repo } : {}),
+    ...(entry.stack ? { programmingLanguage: entry.stack } : {}),
+    ...(entry.source ? { creditText: entry.source } : {}),
+  };
 }
 
 function AttributionBlock({ entry }: { entry: Entry }) {
@@ -91,9 +193,7 @@ function AttributionBlock({ entry }: { entry: Entry }) {
 
 export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">) {
   const { type, slug } = await params;
-  const entry = getPublishedEntries().find(
-    (candidate) => candidate.slug === slug && candidate.filePath.startsWith(`${type}/`),
-  );
+  const entry = findEntry(type, slug);
 
   if (!entry) notFound();
 
@@ -143,23 +243,10 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
 
         <AttributionBlock entry={entry} />
 
-        {/* Body is plain prose today. Rich MDX rendering is a follow-on — the
-            attribution block is the part that must never be missing, and it is
-            frontmatter-driven, so it does not wait on the MDX pipeline. */}
-        <div
-          className={`mt-8 space-y-4 leading-relaxed ${
-            isPlaybook ? "text-chapter-ink/80" : "text-ink-muted"
-          }`}
-        >
-          {entry.body
-            .trim()
-            .split(/\n{2,}/)
-            .filter((block) => !block.startsWith(">"))
-            .map((block, index) => (
-              <p key={index}>{block.replace(/\n/g, " ")}</p>
-            ))}
-        </div>
+        <EntryBody body={entry.body} isChapter={isPlaybook} />
       </div>
+
+      <JsonLd data={entrySchema(entry)} />
     </article>
   );
 }

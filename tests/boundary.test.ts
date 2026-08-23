@@ -61,4 +61,49 @@ describe("static-only routing", () => {
     );
     expect(withFallback.map(([name]) => name)).toEqual([]);
   });
+
+  it("prerenders every app route, leaving nothing server-rendered on demand", () => {
+    /**
+     * The check above only sees routes Next put in `dynamicRoutes`. A route
+     * that is fully dynamic never gets there, so it passed while
+     * `/[type]/[slug]/opengraph-image` was rendering Satori on every request —
+     * the one dynamic route on a site whose README claims static-only.
+     *
+     * Adding `generateStaticParams` + `dynamicParams = false` to an image route
+     * is easy to forget precisely because the cards look right either way. This
+     * asserts the property the README states, instead of the mechanism.
+     */
+    const appManifestPath = path.join(
+      process.cwd(),
+      ".next",
+      "server",
+      "app-paths-manifest.json",
+    );
+    expect(
+      fs.existsSync(appManifestPath),
+      "No app paths manifest - run `npm run build` before `npm test`.",
+    ).toBe(true);
+
+    const manifest = JSON.parse(fs.readFileSync(appManifestPath, "utf8"));
+    const prerender = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), ".next", "prerender-manifest.json"), "utf8"),
+    );
+
+    const prerendered = new Set([
+      ...Object.keys(prerender.routes ?? {}),
+      ...Object.keys(prerender.dynamicRoutes ?? {}),
+    ]);
+
+    // Framework internals are not pages and are never requested directly.
+    const IGNORED = new Set(["/_not-found/page", "/_global-error/page"]);
+
+    const dynamic = Object.keys(manifest)
+      .filter((route) => !IGNORED.has(route))
+      .map((route) => route.replace(/\/(page|route)$/, "") || "/")
+      .filter((route) => !prerendered.has(route));
+
+    expect(dynamic, "These routes render on demand. Give them generateStaticParams.").toEqual(
+      [],
+    );
+  });
 });

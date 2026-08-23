@@ -4,7 +4,25 @@ import Wordmark from "@/components/brand/Wordmark";
 import StatRow from "@/components/site/StatRow";
 import SystemTrace from "@/components/site/SystemTrace";
 import { getPublishedEntries } from "@/lib/content";
+import { entryDescription } from "@/lib/site";
+import type { Entry } from "@/lib/schema";
 import Link from "next/link";
+
+/**
+ * The one-line summary on a directory card.
+ *
+ * Cut at a word boundary rather than clipped with CSS, because a card in a
+ * two-column grid next to a card with a short line should still align — and an
+ * ellipsis the reader can see is more honest than text that fades out.
+ */
+const CARD_LINE_MAX = 118;
+
+function cardLine(entry: Entry): string {
+  const text = entryDescription(entry);
+  return text.length > CARD_LINE_MAX
+    ? `${text.slice(0, CARD_LINE_MAX).replace(/\s+\S*$/, "")}…`
+    : text;
+}
 
 export default function Home() {
   const entries = getPublishedEntries();
@@ -66,9 +84,15 @@ export default function Home() {
                     <h3 className="mt-1.5 font-display text-lg font-semibold text-ink">
                       {entry.title}
                     </h3>
-                    {entry.problem ? (
-                      <p className="mt-2 text-sm text-ink-muted">{entry.problem}</p>
-                    ) : null}
+                    {/* Every card gets a line. `problem` only exists on a
+                        build, so the four tool cards used to render as a title
+                        sitting directly on its metadata — visibly lighter than
+                        the builds beside them in the same grid. entryDescription
+                        falls back through the fields a tool does have, so the
+                        row reads evenly without inventing copy. */}
+                    <p className="mt-2 text-sm text-ink-muted">
+                      {cardLine(entry)}
+                    </p>
                     <p className="tabular mt-3 font-mono text-[11px] text-ink-dim">
                       {entry.stack ?? entry.source} · verified {entry.verifiedOn}
                     </p>
