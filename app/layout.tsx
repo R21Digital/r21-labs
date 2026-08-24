@@ -95,6 +95,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               name: ORGANIZATION.name,
               legalName: ORGANIZATION.legalName,
               url: ORGANIZATION.url,
+              // Entity disambiguation. "R21 Labs" collides by name with AI21
+              // Labs, Bio21, InfoLab21, CrunchLabs and the R21 malaria vaccine;
+              // sameAs is the property that resolves which entity this is.
+              sameAs: [...ORGANIZATION.sameAs],
             },
           }}
         />
