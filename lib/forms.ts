@@ -74,6 +74,20 @@ function required(
 }
 
 /**
+ * An OPTIONAL field, still capped.
+ *
+ * 🔴 Adversarial review 2026-08-24: `replaces` and `organization` went through
+ * `str()` alone, so the length cap only ever applied to fields that happened to
+ * be required. Optional meant unbounded. The cap is a property of the field, not
+ * of whether it must be filled in — anything that reaches an email template
+ * needs one.
+ */
+function optional(errors: string[], value: string, label: string, max = MAX_FIELD): string {
+  if (value.length > max) errors.push(`${label} is too long.`);
+  return value;
+}
+
+/**
  * The length cap is here, not only in `required()`.
  *
  * Caught by `tests/forms.test.ts` on the first run: the subscribe form has one
@@ -150,7 +164,7 @@ export function parseSubmission(raw: unknown): ParseResult {
     const toolUrl = required(errors, str(body.toolUrl), "Link", 500);
     optionalUrl(errors, toolUrl, "Link");
     const why = required(errors, str(body.why), "What it does for you");
-    const replaces = str(body.replaces);
+    const replaces = optional(errors, str(body.replaces), "Replaces", 500);
     // Optional: someone can suggest a tool without wanting a reply.
     const email = str(body.email);
     if (email.length > 0 && (email.length > MAX_EMAIL || !EMAIL.test(email))) {
@@ -164,7 +178,7 @@ export function parseSubmission(raw: unknown): ParseResult {
   const name = required(errors, str(body.name), "Name", 200);
   const email = requiredEmail(errors, str(body.email));
   const message = required(errors, str(body.message), "Message");
-  const organization = str(body.organization);
+  const organization = optional(errors, str(body.organization), "Company", 200);
   return errors.length > 0
     ? { ok: false, errors }
     : { ok: true, submission: { kind: "contact", name, email, organization, message } };

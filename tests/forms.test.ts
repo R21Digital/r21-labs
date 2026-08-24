@@ -89,6 +89,29 @@ describe("parseSubmission", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("caps OPTIONAL fields too", () => {
+    // Adversarial review 2026-08-24: `replaces` and `organization` went through
+    // str() alone, so the cap only ever applied to required fields. Optional
+    // meant unbounded, all the way into an email template.
+    const suggestion = parseSubmission({
+      kind: "suggestion",
+      toolName: "x",
+      toolUrl: "https://example.com",
+      why: "y",
+      replaces: "z".repeat(5000),
+    });
+    expect(suggestion.ok, "an oversized `replaces` was accepted").toBe(false);
+
+    const contact = parseSubmission({
+      kind: "contact",
+      name: "a",
+      email: "a@b.co",
+      message: "m",
+      organization: "o".repeat(5000),
+    });
+    expect(contact.ok, "an oversized `organization` was accepted").toBe(false);
+  });
+
   describe("the honeypot", () => {
     it("rejects a filled honeypot", () => {
       const result = parseSubmission({
@@ -219,11 +242,28 @@ describe("the silent-capture guard", () => {
     if (!result.ok) expect(result.error).toContain("ALERT_TO");
   });
 
-  it("still allows the fallback on a preview deployment", async () => {
-    // Preview builds run on every PR with no AWS credentials attached. If the
-    // production rule applied here, every preview would answer 503 and the form
-    // would be untestable in the one place it is safe to test.
+  it("🔴 REFUSES to fall back on a PREVIEW deployment either", async () => {
+    /**
+     * The hole in the first version, found by adversarial review 2026-08-24.
+     *
+     * The rule was written as `VERCEL_ENV === "production"`, which reads as
+     * "not in development" and is not. A preview has a real, reachable URL, so
+     * anyone submitting through one got the normal success state while nothing
+     * was delivered — and the log transport wrote their name, address and
+     * message into the deployment log on the way past.
+     *
+     * The test is now about whether the code is DEPLOYED, not which deployment
+     * it is.
+     */
     withEnv({ VERCEL_ENV: "preview" });
+    const result = await sendNotification(mail);
+    expect(result.ok).toBe(false);
+  });
+
+  it("allows the fallback locally, where VERCEL_ENV is unset", async () => {
+    // Vacuity guard for the two above: if the rule rejected everything, the
+    // local path would be broken and both would still pass.
+    withEnv({});
     const result = await sendNotification(mail);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.transport).toBe("log");

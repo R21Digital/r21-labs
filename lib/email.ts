@@ -67,15 +67,27 @@ export function isEmailConfigured(): boolean {
 }
 
 /**
- * True only on a real production deployment.
+ * True on ANY deployment — production or preview.
  *
- * `VERCEL_ENV` is `production` only for the production deployment; previews get
- * `preview` and local gets nothing. Checking it rather than `NODE_ENV` matters
- * because `next build` runs with `NODE_ENV=production` on every machine,
- * including a laptop with no AWS credentials, and that build must not fail.
+ * 🔴 Corrected 2026-08-24 by adversarial review. This used to be
+ * `isProduction()`, testing `VERCEL_ENV === "production"`, which left previews
+ * on the log transport. That is a hole in the exact guarantee this file exists
+ * to provide, and it failed in two ways at once:
+ *
+ * - A preview has a real, reachable URL. Anyone submitting through one got the
+ *   normal "Sent." state while nothing was delivered.
+ * - The log transport printed the whole submission, so names, addresses and
+ *   message bodies were written into deployment logs.
+ *
+ * The rule is now about whether the code is DEPLOYED, not about which
+ * deployment it is. `VERCEL_ENV` is set on production and preview alike and is
+ * unset locally, so its mere presence is the test.
+ *
+ * Checking this rather than `NODE_ENV` still matters: `next build` runs with
+ * `NODE_ENV=production` on every laptop, and that build must not fail.
  */
-export function isProduction(): boolean {
-  return env("VERCEL_ENV") === "production";
+export function isDeployed(): boolean {
+  return env("VERCEL_ENV") !== undefined;
 }
 
 let client: SESv2Client | null = null;
@@ -105,18 +117,18 @@ export async function sendNotification(mail: Outbound): Promise<SendResult> {
   if (override) return override(mail);
 
   if (!isEmailConfigured()) {
-    if (isProduction()) {
+    if (isDeployed()) {
       return {
         ok: false,
         error: `Email is not configured: missing ${missingEmailEnv().join(", ")}`,
       };
     }
-    // Dev and preview: print it and say which transport handled it, so a local
-    // run can never be mistaken for a delivered message.
-    console.info("[r21-labs] form submission (log transport, nothing sent)", {
+    // Local development and tests only — never a deployment. The submission
+    // body is deliberately NOT logged even here: a dev log is still a file on
+    // disk, and there is no version of "print the visitor's message" worth the
+    // habit it builds.
+    console.info("[r21-labs] submission accepted (log transport, nothing sent)", {
       subject: mail.subject,
-      replyTo: mail.replyTo,
-      text: mail.text,
     });
     return { ok: true, id: `log-${Date.now()}`, transport: "log" };
   }
@@ -138,7 +150,13 @@ export async function sendNotification(mail: Outbound): Promise<SendResult> {
         },
       }),
     );
-    return { ok: true, id: out.MessageId ?? "unknown", transport: "ses" };
+    // The MessageId is logged, not just returned. It is the only thread back
+    // from "the form said it sent" to a specific SES message, and a bounce
+    // investigation with no id has nothing to search on. This is a trail, not a
+    // durable outbox — see the README's known limits for what it does not cover.
+    const id = out.MessageId ?? "unknown";
+    console.info("[r21-labs] submission handed to SES", { id });
+    return { ok: true, id, transport: "ses" };
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }

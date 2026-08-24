@@ -63,18 +63,63 @@ const INTENTIONALLY_DYNAMIC = new Set(["/api/submit"]);
 
 describe("static-only routing", () => {
   it("keeps the dynamic-route exception to routes that touch no content", () => {
-    // The exception is only safe while it stays true. A form endpoint that
-    // started importing the content layer would be a draft-leak surface with a
-    // permission slip already signed.
+    /**
+     * The exception is only safe while it stays true. A form endpoint that
+     * started reading the content layer would be a draft-leak surface with a
+     * permission slip already signed.
+     *
+     * 🔴 The first version of this check grepped the route's own source for the
+     * literal `@/lib/content`. Adversarial review 2026-08-24 pointed out that
+     * this proves almost nothing: a relative import, or any helper that itself
+     * reads content, walks straight past it. That is the same mistake as
+     * `draft-leak.test.ts` matching on `.xml` — a test that looks like a
+     * guarantee and asserts a spelling.
+     *
+     * This walks the route's whole local dependency graph instead.
+     */
+    const CONTENT_MODULES = ["lib/content", "lib/schema"];
+
+    /** Every first-party module reachable from `entry`, transitively. */
+    function localDeps(entry: string, seen = new Set<string>()): Set<string> {
+      const resolved = [".ts", ".tsx", "/index.ts", ""]
+        .map((ext) => `${entry}${ext}`)
+        .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+      if (!resolved || seen.has(resolved)) return seen;
+      seen.add(resolved);
+
+      const source = fs.readFileSync(resolved, "utf8");
+      for (const [, spec] of source.matchAll(/from\s+["']([^"']+)["']/g)) {
+        const next = spec.startsWith("@/")
+          ? path.join(process.cwd(), spec.slice(2))
+          : spec.startsWith(".")
+            ? path.resolve(path.dirname(resolved), spec)
+            : null; // bare specifier — a package, not ours
+        if (next) localDeps(next, seen);
+      }
+      return seen;
+    }
+
     for (const route of INTENTIONALLY_DYNAMIC) {
       const file = path.join(process.cwd(), "app", `${route}/route.ts`);
       expect(fs.existsSync(file), `${route} is allowlisted but does not exist.`).toBe(true);
 
-      const source = fs.readFileSync(file, "utf8");
+      const reached = [...localDeps(file)].map((f) =>
+        path.relative(process.cwd(), f).replace(/\\/g, "/"),
+      );
+
+      // Vacuity guard: a walk that resolves nothing would pass silently.
       expect(
-        /@\/lib\/content/.test(source),
-        `${route} is allowlisted as dynamic AND reads content. One or the other.`,
-      ).toBe(false);
+        reached.length,
+        `Dependency walk for ${route} found nothing — the resolver is broken.`,
+      ).toBeGreaterThan(1);
+
+      const offenders = reached.filter((f) =>
+        CONTENT_MODULES.some((mod) => f.startsWith(mod)),
+      );
+      expect(
+        offenders,
+        `${route} is allowlisted as dynamic AND reaches the content layer. One or the other.`,
+      ).toEqual([]);
     }
   });
 

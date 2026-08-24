@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 
 import { HONEYPOT_FIELD, type SubmissionKind } from "@/lib/forms";
 
@@ -9,11 +9,23 @@ import { HONEYPOT_FIELD, type SubmissionKind } from "@/lib/forms";
  * different arrangements, so they are one component driven by a field list
  * rather than three hand-built forms that drift apart.
  *
- * It posts JSON to `/api/submit` and it works as a plain `<form>` first: the
- * fields are real inputs with real labels inside a real form element, `method`
- * and `action` are set, and the JS handler only intercepts submit to keep the
- * visitor on the page. The failure mode if the script never loads is a full
- * page POST, not a dead button.
+ * It posts JSON to `/api/submit`, and it works as a plain `<form>` first: real
+ * inputs with real labels inside a real form element, with `method` and
+ * `action` set, so the JS handler only intercepts submit to keep the visitor on
+ * the page.
+ *
+ * 🔴 That last sentence used to be a claim rather than a fact. The route parsed
+ * JSON only, so a native browser POST — which sends
+ * `application/x-www-form-urlencoded` — returned "Malformed request" every
+ * time. Adversarial review caught it on 2026-08-24. The route now reads either
+ * encoding and answers a native post with a 303 back to this page carrying
+ * `?submitted=`, which `useSyncExternalStore` below turns into the same
+ * confirmation a scripted submit gets.
+ *
+ * The query is read from `window.location` rather than through
+ * `useSearchParams`, deliberately: the pages hosting this form are prerendered,
+ * and `useSearchParams` would pull them toward a Suspense boundary or a
+ * client-side bail for a value that only matters after a redirect.
  *
  * The success state REPLACES the form rather than sitting above it. A thank-you
  * message next to a still-filled form is the shape that produces duplicate
@@ -62,6 +74,34 @@ export default function SubmitForm({
   const [errors, setErrors] = useState<string[]>([]);
   const formId = useId();
 
+  /**
+   * The no-JS return path — the `?submitted=` flag the route redirects back
+   * with after a native form post.
+   *
+   * `useSyncExternalStore` rather than an effect that calls `setState`. The
+   * value exists only on the client, and the effect version is both a lint
+   * error (`react-hooks/set-state-in-effect`) and the wrong shape: this is not
+   * state that changes, it is a value the server cannot see. The third argument
+   * is the server snapshot, so hydration starts from `null` on both sides and
+   * React reconciles once, instead of rendering one thing and correcting it.
+   *
+   * `subscribe` is a no-op because the flag never changes after load — a second
+   * submission goes through the scripted path and never lands here.
+   */
+  const submitted = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("submitted"),
+    () => null,
+  );
+
+  const showSent = state === "sent" || (state === "idle" && submitted === "sent");
+  const shownErrors =
+    errors.length > 0
+      ? errors
+      : state === "idle" && submitted === "error"
+        ? ["That did not go through. Please check the fields and try again."]
+        : [];
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("sending");
@@ -91,7 +131,7 @@ export default function SubmitForm({
     }
   }
 
-  if (state === "sent") {
+  if (showSent) {
     return (
       <div role="status" className={inline ? "" : "py-2"}>
         <p className="font-display text-base font-semibold text-ink">{successTitle}</p>
@@ -102,10 +142,10 @@ export default function SubmitForm({
 
   return (
     <form
+      id="form"
       method="post"
       action="/api/submit"
       onSubmit={handleSubmit}
-      noValidate
       className={inline ? "flex flex-col gap-2 sm:flex-row sm:items-start" : "space-y-4"}
     >
       <input type="hidden" name="kind" value={kind} />
@@ -176,9 +216,9 @@ export default function SubmitForm({
           on arrival; sighted users get them next to the button that caused
           them, rather than at the top of a page they have scrolled past. */}
       <div aria-live="polite" className={inline ? "sm:order-last sm:w-full" : ""}>
-        {errors.length > 0 ? (
+        {shownErrors.length > 0 ? (
           <ul className="space-y-1 rounded-[var(--radius-control)] border border-accent/40 bg-accent/[0.07] px-3 py-2 text-sm text-ink">
-            {errors.map((error) => (
+            {shownErrors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>

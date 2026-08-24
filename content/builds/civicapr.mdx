@@ -25,6 +25,16 @@ of 24 concurrent requests, all 24 hit **one** cache entry rather than 24 separat
 renders. That is the difference between a cache that helps a single user and one
 that holds up under traffic, and it is not visible from a single-request timing.
 
+**How those were measured, so you can weigh them:** row counts from the query
+plan, timings from repeated requests against the production deployment on
+2026-08-23, and the concurrency figure from a 24-way parallel probe against a
+cold cache entry on the same day. They are R21's own measurements on a private
+repository — this entry links a live URL and no benchmark artifact, so treat them
+as reported rather than independently reproducible. The site's build guards
+enforce attribution and link-checking; they cannot verify a number R21 measured
+about its own system, and it would be dishonest to let the surrounding rigour
+imply otherwise.
+
 ## The failure worth naming
 
 A scheduled sync silently truncated for days while **every status check stayed

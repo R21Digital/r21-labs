@@ -33,15 +33,32 @@ not.
 
 ## Why the move, honestly
 
-Pricing *shape*, not features. Hosted automation bills per task or per operation,
-so a workflow polling a mailbox every fifteen minutes costs money on every poll,
-including the empty ones — and empty polls are most of them. Self-hosted, the same
-workflow costs whatever the server costs, whether it fires once a day or four times
-an hour.
+Pricing *shape*, not features — and the shape differs by vendor, which is worth
+getting right rather than waving at "hosted automation is expensive."
 
-R21 measured its own hosted consumption before migrating rather than assuming, and
-found it was paying for a ceiling well above what the workflows actually used. That
-is the shape of the pricing model rather than a fault in any vendor.
+**The platform R21 actually migrated off was Make**, which bills per
+**operation**, where an operation is a module run. A scenario polling a mailbox
+every fifteen minutes therefore costs on every poll, including the empty ones,
+and empty polls are most of them.
+
+**Zapier's model is different and it is worth naming correctly.** Zapier bills
+*tasks*, and its documentation states plainly that
+[triggers never use tasks](https://help.zapier.com/hc/en-us/articles/8496196837261-Zap-tasks-explained) —
+polling is free there, as are filters, paths and steps that error. Only
+successful actions count. So Zapier's cost driver is the volume of work
+completed, not the frequency of checking.
+
+Self-hosted, neither meter runs. The workflow costs whatever the server costs,
+whether it fires once a day or four times an hour.
+
+R21 measured its own consumption before migrating rather than assuming, and found
+it was paying for a ceiling well above what the workflows actually used. That is
+the shape of a per-operation model, not a fault in any vendor.
+
+*(Corrected 2026-08-24: an earlier version of this entry attributed the
+poll-costs-money behaviour to Zapier. That is Make's model, not Zapier's. On a
+site whose product is checkable claims, a wrong claim about a named vendor's
+pricing is exactly the defect worth publishing the correction for.)*
 
 ## What self-hosting actually costs
 

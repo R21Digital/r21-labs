@@ -40,17 +40,25 @@ export default function Footer() {
             <p className="tabular font-mono text-[11px] uppercase tracking-widest text-ink-muted">
               New entries
             </p>
+            {/* 🔴 The copy here is deliberately smaller than the obvious version.
+                Adversarial review 2026-08-24 caught the first draft promising
+                "You're on the list." There is no list — the address is emailed
+                to R21 and added by a person. Every word of a subscribe box is a
+                promise about future behaviour, and this site cannot afford one
+                it has not built. When a real list with confirmed opt-in exists,
+                this copy earns the stronger claim. */}
             <p className="mt-2.5 text-sm leading-relaxed text-ink-muted">
               A note when something is added or a playbook lands. No schedule, because
-              there is no point sending one when nothing has been tested.
+              there is no point sending one when nothing has been tested. Your address
+              is used for that and nothing else.
             </p>
             <div className="mt-4">
               <SubmitForm
                 inline
                 kind="subscribe"
                 submitLabel="Subscribe"
-                successTitle="You're on the list."
-                successBody="You'll hear from R21 when there is something to say."
+                successTitle="Got your address."
+                successBody="A person at R21 adds it by hand — there is no automated list yet, so this is not instant. You'll hear from us when there is something worth sending."
                 fields={[
                   {
                     name: "email",

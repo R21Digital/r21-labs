@@ -78,9 +78,31 @@ contact forms captured nothing while thanking every visitor. The fallback is a d
 convenience and `lib/email.ts` refuses it when `VERCEL_ENV=production`. That refusal has its own
 test, and it is the one in this repo most worth keeping green.
 
+**The forms work without JavaScript.** Not as an aspiration — the route reads
+`application/x-www-form-urlencoded` as well as JSON and answers a native post with a 303 back to the
+page, which renders the same confirmation. This is called out because the first version *claimed* it
+in a code comment while the route parsed JSON only, so every no-JS submission returned "Malformed
+request". A documented fallback nobody has exercised is worse than none, because it stops anyone
+looking.
+
 Spam handling is a honeypot field and length caps, nothing more. A filled honeypot gets the same 200
 and the same response body a real submission gets, and sends nothing — telling a script which field
 gave it away is how you train the next attempt.
+
+### What the forms do NOT do
+
+Adversarial review on 2026-08-24 raised four gaps. Two were fixed; these are the two that were
+deliberately not built, recorded here rather than left for someone to discover:
+
+- **No durable outbox.** A submission is handed to SES and the visitor is told it sent. The
+  MessageId is logged, so a bounce can be traced — but nothing is persisted, so a message SES accepts
+  and later bounces is gone, and a retry after a 503 can duplicate. Building the outbox means adding
+  a datastore to a site whose stated architecture is that it has none. That trade is worth revisiting
+  if volume ever justifies it; today it does not.
+- **No rate limiting.** The honeypot stops naive bots and stops nothing else — a scripted JSON post
+  that omits the field walks past it. Serverless functions have no shared memory to count against, so
+  the real control belongs at the edge (Vercel's firewall), not in this route. Stated plainly because
+  a honeypot is easy to mistake for abuse protection.
 
 ## Three architecture decisions
 

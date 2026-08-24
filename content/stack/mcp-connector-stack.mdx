@@ -2,8 +2,8 @@
 title: The MCP connector stack
 type: stack
 status: published
-depth: deep
-verifiedOn: 2026-08-20
+depth: partial
+verifiedOn: 2026-08-24
 situation: What R21 actually runs agents against, day to day.
 integrations:
   - n8n
@@ -26,10 +26,54 @@ integrations:
   - Hugging Face
 ---
 
-R21 runs agents against production systems, not sample data.
+R21 runs agents against production systems, not sample data. This is the list of
+what is actually connected, and the count on the homepage is this list's length
+rather than a number someone typed.
 
-The shape of it, confirmed 2026-08-20: automation and anything needing an external trigger runs on **n8n, on R21's own server**. Hosting is **Vercel**. Domains sit at **Cloudflare**.
+## The three tiers
 
-Make.com is deliberately absent. It was retired in the 2026-08-16 cutover to n8n, and listing a tool R21 no longer runs would be the exact failure this site exists to prevent.
+They are not interchangeable, and the difference is who is trusted with what:
 
-The remaining entries are MCP servers observed connected in a live working session. The homepage renders this list's length rather than a typed number, so when the stack changes the count changes with it.
+- **Infrastructure R21 owns.** Automation and anything needing an external
+  trigger runs on **n8n, on R21's own server**. Hosting is **Vercel**, domains
+  sit at **Cloudflare**, data on **Supabase**, mail through **AWS SES**.
+- **Systems R21 operates on a client's behalf** — Stripe, Wix, Metricool,
+  ClickUp, the Google surfaces. An agent reaching these is acting inside someone
+  else's account, which is a different risk category from reading a repository.
+- **Reference and capability** — Context7, Exa, NotebookLM, Playwright,
+  Hugging Face. These bring information or ability in rather than reaching out to
+  a system of record.
+
+## What "connected" is allowed to mean
+
+Every entry here was observed connected in a live working session. That is a
+deliberately weak claim, honestly stated: it means the connector authenticated
+and answered, not that R21 uses all eighteen every week.
+
+The temptation on a page like this is to list what is *installed*, which is
+always a longer and more impressive list, and always partly fiction. The rule
+this site is built on applies to its own stack page.
+
+## Make.com is not on this list, and the reason is measured
+
+R21 migrated its automations off Make to self-hosted n8n through August 2026 —
+in stages rather than in one cutover. Eleven `LeadNotify` relays moved on
+2026-08-06, taking active scenarios from 18 to 7; two more followed on 08-08.
+
+The effect is the strongest number R21 has on the value of the move. Measured
+over a clean four-day window entirely after the migration, consumption fell to
+**8.5× below** the pre-migration rate.
+
+**What is not claimed:** a date on which Make was switched off. The last
+recorded reading, 2026-08-10, still showed five active scenarios, and no
+measurement after that has been taken. An earlier version of this page named a
+retirement date that nothing supports, and both R21's internal notes and this
+entry had settled on different wrong dates — which is the ordinary way an
+unrecorded fact becomes a confident one. It says what was measured, and stops.
+
+## Depth
+
+Listed as `partial` rather than `deep`: this page gives the shape and the
+reasoning, not credentials, scopes or configuration. It previously claimed
+`deep`, which the spec defines as full method and reproducible config, and it
+never contained either.
