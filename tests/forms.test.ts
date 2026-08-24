@@ -20,11 +20,11 @@ import { isEmailConfigured, missingEmailEnv, sendNotification } from "@/lib/emai
  */
 
 const ENV_KEYS = [
-  "AWS_REGION",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-  "LABS_EMAIL_FROM",
-  "LABS_EMAIL_TO",
+  "AWS_SES_REGION",
+  "AWS_SES_ACCESS_KEY_ID",
+  "AWS_SES_SECRET_ACCESS_KEY",
+  "ALERT_FROM",
+  "ALERT_TO",
   "VERCEL_ENV",
 ] as const;
 
@@ -162,9 +162,9 @@ describe("renderNotification", () => {
 
 describe("email configuration", () => {
   it("names what is missing rather than reporting a bare false", () => {
-    withEnv({ AWS_REGION: "us-east-1" });
+    withEnv({ AWS_SES_REGION: "us-east-1" });
     expect(isEmailConfigured()).toBe(false);
-    expect(missingEmailEnv()).toContain("LABS_EMAIL_FROM");
+    expect(missingEmailEnv()).toContain("ALERT_FROM");
   });
 
   it("treats a BOM-prefixed value as configured", () => {
@@ -172,24 +172,24 @@ describe("email configuration", () => {
     // `vercel env ls` and in the logs. Only the runtime rejects it, and R21 has
     // already lost an afternoon to one sitting in an AWS region string.
     withEnv({
-      AWS_REGION: "﻿us-east-1",
-      AWS_ACCESS_KEY_ID: "k",
-      AWS_SECRET_ACCESS_KEY: "s",
-      LABS_EMAIL_FROM: "labs@r21digital.com",
-      LABS_EMAIL_TO: "cjimenez@r21digital.com",
+      AWS_SES_REGION: "﻿us-east-1",
+      AWS_SES_ACCESS_KEY_ID: "k",
+      AWS_SES_SECRET_ACCESS_KEY: "s",
+      ALERT_FROM: "no-reply@r21digital.com",
+      ALERT_TO: "cjimenez@r21digital.com",
     });
     expect(missingEmailEnv()).toEqual([]);
   });
 
   it("treats a whitespace-only value as missing, not as set", () => {
     withEnv({
-      AWS_REGION: "us-east-1",
-      AWS_ACCESS_KEY_ID: "k",
-      AWS_SECRET_ACCESS_KEY: "s",
-      LABS_EMAIL_FROM: "   ",
-      LABS_EMAIL_TO: "cjimenez@r21digital.com",
+      AWS_SES_REGION: "us-east-1",
+      AWS_SES_ACCESS_KEY_ID: "k",
+      AWS_SES_SECRET_ACCESS_KEY: "s",
+      ALERT_FROM: "   ",
+      ALERT_TO: "cjimenez@r21digital.com",
     });
-    expect(missingEmailEnv()).toEqual(["LABS_EMAIL_FROM"]);
+    expect(missingEmailEnv()).toEqual(["ALERT_FROM"]);
   });
 });
 
@@ -216,7 +216,7 @@ describe("the silent-capture guard", () => {
     withEnv({ VERCEL_ENV: "production" });
     const result = await sendNotification(mail);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("LABS_EMAIL_TO");
+    if (!result.ok) expect(result.error).toContain("ALERT_TO");
   });
 
   it("still allows the fallback on a preview deployment", async () => {

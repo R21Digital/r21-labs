@@ -14,9 +14,18 @@
  *
  * 2. **Env values are cleaned before use.** A UTF-8 BOM in a Vercel
  *    environment variable is invisible in the dashboard, invisible in
- *    `vercel env ls`, and invisible in the logs — only the runtime rejects it,
- *    and R21 lost an afternoon to one sitting in an AWS region string. Trimming
- *    and stripping the BOM costs nothing and removes the whole class.
+ *    `vercel env ls`, and invisible in the logs — only the runtime rejects it.
+ *    This is not hypothetical: Pediatrix Caribbean's lead email was dead for an
+ *    unknown stretch because `AWS_SES_REGION` held `﻿us-east-1`, written
+ *    there by a PowerShell pipe. Fixing it exposed a second control character
+ *    in an address underneath. Trimming and stripping the BOM costs nothing and
+ *    removes the whole class.
+ *
+ * The variable names match the rest of R21's fleet (`AWS_SES_*`, `ALERT_*`)
+ * rather than the AWS SDK's own defaults. That is deliberate: the ops runbooks
+ * sweep for those names, and a site using different ones is a site the sweep
+ * silently skips. It means credentials are passed to the client explicitly
+ * instead of being picked up from the environment.
  */
 
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
@@ -41,11 +50,11 @@ function env(name: string): string | undefined {
 }
 
 const REQUIRED = [
-  "AWS_REGION",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-  "LABS_EMAIL_FROM",
-  "LABS_EMAIL_TO",
+  "AWS_SES_REGION",
+  "AWS_SES_ACCESS_KEY_ID",
+  "AWS_SES_SECRET_ACCESS_KEY",
+  "ALERT_FROM",
+  "ALERT_TO",
 ] as const;
 
 /** Which of the required variables are absent — named, so the 503 can say. */
@@ -71,7 +80,15 @@ export function isProduction(): boolean {
 
 let client: SESv2Client | null = null;
 function ses(): SESv2Client {
-  if (!client) client = new SESv2Client({ region: env("AWS_REGION") });
+  if (!client) {
+    client = new SESv2Client({
+      region: env("AWS_SES_REGION"),
+      credentials: {
+        accessKeyId: env("AWS_SES_ACCESS_KEY_ID")!,
+        secretAccessKey: env("AWS_SES_SECRET_ACCESS_KEY")!,
+      },
+    });
+  }
   return client;
 }
 
@@ -107,8 +124,8 @@ export async function sendNotification(mail: Outbound): Promise<SendResult> {
   try {
     const out = await ses().send(
       new SendEmailCommand({
-        FromEmailAddress: env("LABS_EMAIL_FROM"),
-        Destination: { ToAddresses: [env("LABS_EMAIL_TO")!] },
+        FromEmailAddress: env("ALERT_FROM"),
+        Destination: { ToAddresses: [env("ALERT_TO")!] },
         ReplyToAddresses: mail.replyTo ? [mail.replyTo] : undefined,
         Content: {
           Simple: {

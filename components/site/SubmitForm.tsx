@@ -86,7 +86,7 @@ export default function SubmitForm({
     } catch {
       // Network-level failure. Naming the alternative matters more than the
       // apology — the visitor came here to say something.
-      setErrors(["We could not reach the server. Please email hello@r21digital.com."]);
+      setErrors(["We could not reach the server. Please email info@r21digital.com."]);
       setState("idle");
     }
   }

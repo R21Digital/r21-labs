@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         errors: [
-          "We could not deliver that just now. Please email hello@r21digital.com instead.",
+          "We could not deliver that just now. Please email info@r21digital.com instead.",
         ],
       },
       { status: 503 },

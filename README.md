@@ -43,12 +43,14 @@ it, and every page renders.
 | Variable | Needed for | If unset |
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | Canonicals, sitemap, feed, OG image URLs | Defaults to `https://r21labs.com`. Set it only on a fork or a staging deploy that should not claim to be production. |
-| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Sending form submissions via SES | Forms log instead of sending — **in dev and preview only**, see below |
-| `LABS_EMAIL_FROM` | The SES-verified sender identity | as above |
-| `LABS_EMAIL_TO` | Where submissions land | as above |
+| `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY_ID`, `AWS_SES_SECRET_ACCESS_KEY` | Sending form submissions via SES | Forms log instead of sending — **in dev and preview only**, see below |
+| `ALERT_FROM` | The SES-verified sender identity, e.g. `no-reply@r21digital.com` | as above |
+| `ALERT_TO` | Where submissions land | as above |
 
-The AWS credentials are R21 Labs' own, not shared with another R21 project. That is a workspace
-rule rather than a preference: a key reused across projects cannot be rotated for one of them.
+The names match the rest of R21's site fleet rather than the AWS SDK's own defaults, so the ops
+sweeps that grep for `AWS_SES_*` see this project too. The credentials themselves are R21 Labs' own
+IAM user, not shared with another R21 project — a workspace rule rather than a preference, because a
+key reused across projects cannot be rotated for one of them.
 
 ## Discovery
 
