@@ -19,16 +19,43 @@ replaces:
 A reimplementation of OpenAI's Whisper on CTranslate2. Same model weights, run on
 your own hardware.
 
-R21 transcribes meetings and client calls with this and has a standing rule never
-to send that audio to a paid transcription API. The cost argument is real but
-secondary — at $0.006 a minute, an hour of recording is about 36 cents, which
-nobody would notice. The reason it matters is that the recordings are client
-conversations, and some of them touch medical practices. Audio that stays on the
-machine cannot be retained, subpoenaed, or used as training data by a third party,
-and that is a much easier position to defend than a data-processing agreement.
+## The reason is not the money
 
-Practical note: the speed claim depends on hardware. On CPU it is faster than the
-reference implementation but not fast. The gains people quote come from a GPU with
-CTranslate2's int8 quantisation.
+R21 transcribes meetings and client calls with this and has a standing rule never
+to send that audio to a paid transcription API. At $0.006 a minute, an hour of
+recording is about thirty-six cents. Nobody would notice the bill.
+
+The reason it matters is what the recordings contain. They are client
+conversations, and some of them touch medical practices. Audio that never leaves
+the machine cannot be retained by a third party, cannot be swept into a training
+set, and cannot be produced by someone else in response to a request. That is a
+much easier position to hold than a data-processing agreement, and it costs
+nothing to hold it.
+
+The same reasoning rules out the convenient thing more than once. A meeting
+recording is the most sensitive artifact R21 handles routinely, and the default
+path for handling it is an upload.
+
+## What it actually runs on
+
+R21 runs **large-v3** on a 12 GB RTX 4070 Ti, feeding a research-ingest pipeline
+that turns recordings into structured notes. That combination matters more than
+the tool name:
+
+- **The speed claim is a GPU claim.** On CPU this is faster than the reference
+  implementation but not fast, and the multiples people quote come from
+  CTranslate2's int8 quantisation on a GPU.
+- **Model size is the quality dial, and it is not subtle.** Smaller models are
+  noticeably worse on accented English and on proper nouns — which, for a
+  Puerto Rico agency transcribing bilingual calls, is most of the content that
+  matters.
+
+## Where it still gets things wrong
+
+Names. Consistently. A transcript will render a person's name three different ways
+in one meeting, and every one of them will look plausible enough to copy into a
+document without checking. Any workflow that turns a transcript into a record needs
+a human pass on the proper nouns, or it will confidently publish a misspelled name
+that no amount of re-reading the transcript will catch.
 
 Verified against the GitHub API on 2026-08-23: 25,046 stars, MIT.

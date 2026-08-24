@@ -12,10 +12,41 @@ situation: An LLM confidently using a library API that was deprecated last year.
 install: npx ctx7 setup
 ---
 
-An MCP server that injects current, version-specific library documentation
-into an LLM's context at prompt time. It replaces whatever the model memorized
-in training with what the docs say today.
+An MCP server that pulls current, version-specific library documentation into a
+model's context at prompt time, instead of relying on what it absorbed during
+training.
 
-We reach for it whenever generated code touches a fast-moving framework.
+## The failure it addresses
+
+A model's knowledge of a library is a snapshot of whenever its training data was
+cut, and it has no way to tell you that. So it does not hedge. It writes the call
+signature it learned, with the confidence it would use for one that still exists,
+and the code fails at runtime with an error that sends you looking at your own
+logic first.
+
+This gets worse the faster a library moves. The ecosystems R21 builds in — Next.js,
+Tailwind, the Vercel and Supabase SDKs — ship breaking changes on a timescale
+shorter than the gap between model releases, which is exactly the window where a
+confident wrong answer is most likely.
+
+## Where R21 reaches for it
+
+Any time generated code touches a framework whose current version matters: routing
+and rendering APIs, config file shapes, SDK method names, migration paths between
+major versions. It is least useful for general programming — nothing about
+Context7 helps with business logic, and asking it to is how you spend context
+tokens for nothing.
+
+## What it does not do
+
+It supplies documentation. It does not verify that the documentation was followed,
+and a model can be handed the correct API and still use it wrong. The check that
+catches that is a build, a type error or a test, not a better prompt. Treat this as
+removing one category of failure rather than as a reason to trust the output more
+broadly.
+
+There is also a real cost: every doc page it injects is context the model is
+carrying, and context is finite. Pulling documentation for a library the task never
+touches is not free.
 
 Verified against the GitHub API on 2026-08-22: MIT, 61,094 stars.

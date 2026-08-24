@@ -16,8 +16,47 @@ replaces:
     sourceUrl: https://www.cypress.io/pricing
 ---
 
-Microsoft's browser automation framework. At R21 it does two jobs: end-to-end
-verification of client sites before they ship, and the browser hands and feet
-under agents that need to click through a live page.
+Microsoft's browser automation framework. At R21 it does two jobs that look similar
+and behave nothing alike: end-to-end verification of client sites before they ship,
+and the hands and feet under an agent that has to work a live page.
+
+## What it replaced
+
+The paid tier of a hosted runner, and more usefully, the habit of checking a
+deploy by looking at it. Most of what breaks on a client site after a deploy is
+invisible to a glance — a form that posts to a route that no longer exists, a
+redirect that eats a POST body, an image that 404s below the fold. A scripted pass
+finds those; a human scrolling the homepage does not.
+
+## The two modes are not interchangeable
+
+Playwright can launch its own browser, or it can drive one that is already open
+through an extension bridge. Almost every tutorial covers the first. R21 uses both,
+and the differences are sharp enough to be worth writing down:
+
+| | Launched browser | Attached to a real browser |
+|---|---|---|
+| Session state | None. You log in every run | Whatever that profile already has |
+| File upload | Works | **Not available** |
+| Safe for a logged-in account | It has no account | It has *your* account |
+
+The upload gap is the one that costs time, because it turns up halfway through a
+flow rather than at the start. If a task ends in a file picker, an attached browser
+cannot finish it, and the honest move is to hand the last step to a person rather
+than to switch quietly to a launched browser that is not signed in to anything.
+
+## The finding worth passing on
+
+**An accessibility snapshot serializes input values, including ones the browser
+autofilled.** A password field is masked visually. The value in the accessibility
+tree is not, so a snapshot taken to "see what's on the page" can return a live
+credential in plain text before you have interacted with anything.
+
+Nothing is exploited here and no bug is being reported — this is how an
+accessibility tree is supposed to work, and a screen reader needs the value. It is
+worth knowing anyway, because the mental model that produces the mistake is
+"a snapshot is like a screenshot," and it is not. Two habits fix it: take a
+screenshot when you want to *look* at a page, and scope the snapshot to a subtree
+that excludes the form when you need structure.
 
 Verified against the GitHub API on 2026-08-22: Apache-2.0, 94,973 stars.

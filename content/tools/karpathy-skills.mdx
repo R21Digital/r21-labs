@@ -11,16 +11,51 @@ license: None
 situation: Turning Andrej Karpathy's notes on how LLMs code badly into rules an agent will actually follow.
 ---
 
-A single CLAUDE.md-derived skill set built from Karpathy's observations on LLM
-coding pitfalls: think before coding, minimum code, surgical changes.
+A skill set derived from Andrej Karpathy's observations about how language models
+write code badly, restated as instructions an agent can act on: think before
+coding, write the minimum that solves the problem, keep changes surgical, define
+what success looks like before starting.
 
-Two things we verified against the registry rather than carried over from a
-note. First, the repo has moved: it began as forrestchang/andrej-karpathy-skills
-and now resolves to multica-ai/andrej-karpathy-skills. Second, there is no
-LICENSE file at the repo root as of 2026-08-22. That means default copyright
-terms apply, so we treat it as a reference to read, not a library to vendor.
-It is credited here because R21's workspace guidelines borrow from it openly,
-and because a missing licence is itself a fact worth publishing.
+## The four rules, and why they are the four
 
-Verified against the GitHub API on 2026-08-22: no license detected,
-205,305 stars.
+Each one targets a specific way a competent-looking model output goes wrong:
+
+| Rule | The failure it prevents |
+|---|---|
+| Think before coding | Picking one reading of an ambiguous request silently, then building it |
+| Simplicity first | 200 lines of speculative flexibility for a problem that needed 50 |
+| Surgical changes | Improving adjacent code nobody asked about, burying the real diff |
+| Goal-driven execution | "Make it work" as a success criterion, which cannot be checked |
+
+R21's own workspace guidelines borrow from these openly, and the third one earns
+its keep most often. A diff where every changed line traces to the request is
+reviewable in minutes; the same change with drive-by refactoring is not, and the
+cost lands on the reviewer rather than on whoever wrote it.
+
+## Listed as a reference, not as a dependency
+
+Two things were checked against the registry rather than carried over from a note,
+and both changed how this is treated:
+
+1. **The repo moved.** It began at `forrestchang/andrej-karpathy-skills` and now
+   resolves to `multica-ai/andrej-karpathy-skills`. A link written before the move
+   still works, which is exactly why nobody notices a move.
+2. **There is no LICENSE file at the repo root** as of 2026-08-22. Not a permissive
+   licence, not a restrictive one — none. Default copyright terms therefore apply.
+
+So R21 reads it and credits it, and does not vendor it. That distinction matters
+for a public site: crediting an author is always fine, and copying unlicensed work
+into a repository is not, no matter how freely it was shared.
+
+## A name worth disambiguating
+
+**Three separate things** get conflated, and R21 conflated two of them internally
+before this entry was written. This skill set is derived from Karpathy's
+observations and maintained by someone else. The LLM-wiki structure some of R21's
+knowledge base is built on is a different lineage. And **Graphify is neither** — it
+is Graphify-Labs' work, and has no connection to Karpathy at all.
+
+A missing licence and a moved repository are both facts worth publishing rather
+than quietly working around.
+
+Verified against the GitHub API on 2026-08-22: no license detected, 205,305 stars.

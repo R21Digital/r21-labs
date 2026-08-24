@@ -16,22 +16,49 @@ replaces:
 ---
 
 Workflow automation you host yourself. R21 moved its client automations onto a
-self-hosted n8n box in August 2026 and retired the Make.com account behind them.
+self-hosted n8n box in August 2026 and retired the hosted account behind them.
 
-The reason was pricing shape rather than features. Hosted automation is billed per
-task or per operation, so a workflow that polls a mailbox every fifteen minutes
-costs money on every poll, including the empty ones. Self-hosted, the same
-workflow costs whatever the server costs. R21 measured its own hosted usage before
-migrating and found it was paying for a ceiling well above what the workflows
-actually consumed, which is the shape of the problem rather than a fault in the
-tool.
+## Read the licence before calling it open source
 
-Read the licence before you assume this is open source. n8n is **fair-code** under
-the Sustainable Use License: the source is public and you may self-host it for
-internal use, but it is not OSI-approved and it restricts reselling n8n itself as
-a service. GitHub reports the licence as `NOASSERTION`, which is what "Other"
-looks like through an API and is exactly why the field here names the licence in
-full instead of copying a badge.
+n8n is **fair-code** under the Sustainable Use License. The source is public and
+you may self-host it for internal use, but it is not OSI-approved and it restricts
+reselling n8n itself as a service.
+
+The GitHub API reports the licence as `NOASSERTION`, which is what "Other" looks
+like through an API — so a script that reads a licence field and prints a badge
+will show you something confident and wrong. This entry names the licence in full
+for that reason, and the distinction is not academic for an agency: "we self-host
+it to run your automations" is inside the licence, and "we resell hosted n8n" is
+not.
+
+## Why the move, honestly
+
+Pricing *shape*, not features. Hosted automation bills per task or per operation,
+so a workflow polling a mailbox every fifteen minutes costs money on every poll,
+including the empty ones — and empty polls are most of them. Self-hosted, the same
+workflow costs whatever the server costs, whether it fires once a day or four times
+an hour.
+
+R21 measured its own hosted consumption before migrating rather than assuming, and
+found it was paying for a ceiling well above what the workflows actually used. That
+is the shape of the pricing model rather than a fault in any vendor.
+
+## What self-hosting actually costs
+
+The bill goes down and the responsibilities go up. This is the part that does not
+appear in a pricing comparison:
+
+- **Uptime is yours.** A hosted scheduler that stops firing is someone else's
+  incident. A box that stops firing is yours, and the failure is silent — nothing
+  runs, and nothing tells you nothing ran.
+- **Backups are yours.** Workflow definitions and credentials both live on that
+  machine.
+- **Upgrades are yours**, including the ones that change node behaviour under
+  workflows you have not looked at in months.
+
+The monitoring you have to build to trust a self-hosted box is a real project, not
+a footnote. It is worth it at R21's volume across a fleet of client automations.
+It would not be worth it for three workflows.
 
 Verified against the GitHub API on 2026-08-23: 201,969 stars, licence `NOASSERTION`
 ("Other").

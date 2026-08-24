@@ -11,8 +11,42 @@ license: MIT
 situation: An agent that codes bravely but skips the boring discipline that makes code trustworthy.
 ---
 
-A skill library for coding agents by Jesse Vincent: brainstorming before
-building, writing the failing test first, planning before executing, and
-reviewing after. R21's own workspace process borrows several of its workflows.
+A skill library for coding agents by Jesse Vincent. It supplies the parts of a
+development process that a model will happily skip: explore the requirement before
+building, write the failing test first, plan before executing, debug from evidence
+rather than from a hunch, and verify before claiming something is done.
+
+## Why a library and not a longer prompt
+
+A general instruction to "write tests" competes with everything else in the
+context window and loses, because it is one line against a task the model is
+actively trying to finish. A skill is loaded when the situation matches and
+occupies the foreground while it applies. The difference is not subtle in practice:
+the same model, on the same task, either writes the test first or does not.
+
+## The ones R21 leans on
+
+- **brainstorming** — before any build. Its job is to surface the requirement the
+  request did not state, which is where most rework comes from.
+- **test-driven-development** — the failing test first, always. This is the one
+  that catches "it works" claims that have never been executed.
+- **systematic-debugging** — evidence before fixes. The alternative is changing
+  something plausible and declaring victory when the symptom moves.
+- **verification-before-completion** — the discipline of proving the thing rather
+  than reporting it. R21's recurring failure mode is a green signal that means
+  nothing, so this one earns its place more than the others.
+
+## The honest limitation
+
+**A skill library only works if the agent invokes it**, and an agent under
+momentum is exactly the agent least likely to stop and load one. Every plausible
+rationalisation — "this is a simple question", "let me just look at the code
+first" — arrives precisely when the discipline would have paid.
+
+That is a real gap and no library closes it by existing. R21 runs a standing
+convention alongside this one: before any non-trivial request, scan it against the
+skills already installed and say out loud which one fits, rather than quietly doing
+it by hand. The convention exists because the failure it addresses kept happening
+with the library already installed.
 
 Verified against the GitHub API on 2026-08-22: MIT, 276,193 stars.

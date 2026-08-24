@@ -11,8 +11,44 @@ depth: showcase
 situation: Understanding how a whole codebase is wired without grepping it.
 ---
 
-Graphify-Labs' Graphify, which R21 adapted for Windows.
+Graphify-Labs' Graphify, which R21 adapted for Windows. It turns a codebase and
+its docs, schemas and configs into a queryable knowledge graph using local
+deterministic AST parsing — every edge explained, no vector store, no embedding
+step.
 
-It turns a codebase and its docs, schemas and configs into a queryable knowledge graph using local deterministic AST parsing, with every edge explained and no vector store. R21 maintains the Windows adaptation; the skill in our workspace declares `graphify-windows`. The upstream tool is Graphify-Labs' work and the adaptation is ours, and both halves of that sentence matter.
+## What deterministic parsing buys
 
-Verified against the GitHub API on 2026-08-20: Apache-2.0, 108,622 stars. Two attributions that circulated internally were wrong and are worth naming, because the site exists to stop exactly this. It is not by "Chase AI" — that is the person whose video covered it, and our wiki's section heading turned coverage into authorship. And the "~60K stars" figure was accurate to the recording date, not to now; star counts are fetched or omitted here, never carried over from a note.
+The usual way to make a codebase searchable by an assistant is to embed it and
+retrieve by similarity. That works until you need an answer that is structural
+rather than topical: what calls this, what breaks if it changes, what is the path
+from the route to the query. Similarity search answers those with things that
+*read* like the answer.
+
+An AST-derived graph answers them with edges. It is also reproducible — the same
+repository produces the same graph, so a wrong answer is a bug you can find rather
+than a retrieval that happened to rank badly today.
+
+## Credit, stated precisely
+
+The upstream tool is Graphify-Labs' work. R21 maintains a Windows adaptation, and
+the skill in our workspace declares itself `graphify-windows` for that reason. Both
+halves of that sentence matter, and neither is an achievement worth blurring into
+the other.
+
+## Two attributions that were wrong internally
+
+This entry exists partly to correct R21's own record, because the site's whole
+premise is that claims survive being checked — including ours.
+
+- **It is not by "Chase AI."** That is the person whose video covered the tool.
+  A section heading in R21's internal wiki turned coverage into authorship, and it
+  was repeated from there more than once. Sourcing a project's author from a video
+  about the project is how this happens.
+- **A "~60K stars" figure circulated internally.** It was accurate to the date of
+  that recording and to nothing since. Star counts here are fetched at verification
+  time or omitted; they are never carried across from a note.
+
+Neither error was caught by re-reading the note. Both were caught by querying the
+registry, which is why the build now requires it.
+
+Verified against the GitHub API on 2026-08-20: Apache-2.0, 108,622 stars.
