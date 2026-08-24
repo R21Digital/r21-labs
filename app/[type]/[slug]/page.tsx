@@ -12,6 +12,7 @@ import JsonLd from "@/components/site/JsonLd";
 import {
   ORGANIZATION,
   SITE_NAME,
+  SITE_URL,
   canonicalPath,
   canonicalUrl,
   entryDescription,
@@ -117,6 +118,52 @@ export async function generateMetadata({
  * a thing IS, as opposed to `type`, which records R21's relationship to it.
  * Asserted per-kind in tests/discovery.test.ts.
  */
+/**
+ * Where this page sits, for a crawler that only ever sees this page.
+ *
+ * Added 2026-08-24 off the GEO audit. Every entry is reachable only from the
+ * homepage, so nothing in the markup said what a given entry was one of — a
+ * crawler landing on `/tools/n8n` from a search result had no signal that it
+ * belonged to a catalog at all.
+ *
+ * 🔴 The middle crumb points at a homepage ANCHOR, not at a section index,
+ * because there is no `/tools` route on this site and there never has been. A
+ * BreadcrumbList whose intermediate item 404s is worse than none: it publishes
+ * a hierarchy that does not exist, on the one site whose product is that its
+ * claims survive being followed. The five anchors used here were read out of
+ * the built homepage — `mcp`, `skills`, `tool`, `app`, `playbooks` — rather
+ * than assumed from the section list in the source.
+ *
+ * `stack` deliberately gets no middle crumb. Stack entries are filtered out of
+ * the homepage catalog, so no anchor exists for them, and inventing one to make
+ * the shape symmetrical is the exact failure this comment is about.
+ */
+function breadcrumbSchema(entry: Entry): Record<string, unknown> {
+  const section =
+    entry.type === "playbook"
+      ? { name: "Playbooks", hash: "playbooks" }
+      : entry.category
+        ? { name: CATEGORY_LABEL[entry.category], hash: entry.category }
+        : null;
+
+  const trail = [
+    { name: SITE_NAME, item: SITE_URL },
+    ...(section ? [{ name: section.name, item: `${SITE_URL}/#${section.hash}` }] : []),
+    { name: entry.title, item: canonicalUrl(entry) },
+  ];
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.name,
+      item: crumb.item,
+    })),
+  };
+}
+
 function entrySchema(entry: Entry): Record<string, unknown> {
   const base = {
     "@context": "https://schema.org",
@@ -374,6 +421,7 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
       </div>
 
       <JsonLd data={entrySchema(entry)} />
+      <JsonLd data={breadcrumbSchema(entry)} />
     </article>
   );
 }

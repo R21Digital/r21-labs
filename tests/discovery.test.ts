@@ -272,6 +272,71 @@ describe("discovery layer — build output", () => {
     }
   });
 
+  it("gives each entry a breadcrumb whose intermediate links actually resolve", () => {
+    /**
+     * Added 2026-08-24 off the GEO audit. The risk with BreadcrumbList on this
+     * site is specific: there is no `/tools` index route and never has been, so
+     * the obvious implementation publishes a hierarchy that 404s.
+     *
+     * This asserts the property rather than the mechanism — every non-final
+     * crumb must point at the homepage or at an anchor the homepage actually
+     * renders. The anchor list is read out of the BUILT homepage, so renaming a
+     * section id breaks this test instead of breaking the breadcrumbs silently.
+     */
+    const home = pages.find(({ file }) => path.basename(file) === "index.html");
+    expect(home, "no homepage in build output").toBeTruthy();
+
+    const anchors = new Set(
+      [...(home as { html: string }).html.matchAll(/<section id="([a-z]+)"/g)].map(
+        (m) => m[1],
+      ),
+    );
+    expect(anchors.size, "found no section anchors on the homepage").toBeGreaterThan(0);
+
+    let checked = 0;
+    for (const entry of getPublishedEntries()) {
+      const file = path.join(BUILD_DIR, `${canonicalPath(entry).replace(/^\//, "")}.html`);
+      if (!fs.existsSync(file)) continue;
+
+      const blocks = [
+        ...fs.readFileSync(file, "utf8").matchAll(
+          /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
+        ),
+      ].map(([, json]) =>
+        JSON.parse(
+          json.replace(/\u003c/g, "<").replace(/\u003e/g, ">").replace(/\u0026/g, "&"),
+        ),
+      );
+
+      const crumb = blocks.find((b) => b["@type"] === "BreadcrumbList");
+      expect(crumb, `${entry.slug}: no BreadcrumbList`).toBeTruthy();
+
+      const items = crumb.itemListElement as Array<{ item: string; position: number }>;
+      expect(items.length, `${entry.slug}: breadcrumb too short`).toBeGreaterThanOrEqual(2);
+
+      // Positions must be 1..n, in order — a crawler reads the hierarchy from them.
+      expect(items.map((i) => i.position)).toEqual(items.map((_, i) => i + 1));
+
+      // The last crumb is this page.
+      expect(items[items.length - 1].item).toBe(`${SITE_URL}${canonicalPath(entry)}`);
+
+      for (const item of items.slice(0, -1)) {
+        if (item.item === SITE_URL) continue;
+        const hash = item.item.startsWith(`${SITE_URL}/#`)
+          ? item.item.slice(`${SITE_URL}/#`.length)
+          : null;
+        expect(
+          hash !== null && anchors.has(hash),
+          `${entry.slug}: breadcrumb points at ${item.item}, which the homepage does not render`,
+        ).toBe(true);
+      }
+      checked += 1;
+    }
+
+    // Vacuity guard: a loop that checked nothing would pass every assertion.
+    expect(checked, "no entry pages were checked").toBeGreaterThan(0);
+  });
+
   it("describes itself to machines with structured data", () => {
     // Goal 2 of the spec is AI citability. A crawler that cannot tell what
     // kind of thing a page is has to guess from prose.
