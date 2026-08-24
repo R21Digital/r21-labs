@@ -35,12 +35,20 @@ npm run verify
 
 `verify` is the real check: link guard → build → tests. `npm run dev` for local work.
 
-Node 22+. No database, no CMS, no secrets.
+Node 22+. No database and no CMS. The content layer needs no credentials at all — clone it, build
+it, and every page renders.
 
-One optional env var: **`NEXT_PUBLIC_SITE_URL`**, the absolute origin used for canonicals, the
-sitemap, the feed and OpenGraph image URLs. It defaults to `https://r21labs.com` — the launch
-domain, not the current preview alias, deliberately (see `lib/site.ts`). Set it only on a fork or a
-staging deploy that should not claim to be production.
+### Environment
+
+| Variable | Needed for | If unset |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | Canonicals, sitemap, feed, OG image URLs | Defaults to `https://r21labs.com`. Set it only on a fork or a staging deploy that should not claim to be production. |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Sending form submissions via SES | Forms log instead of sending — **in dev and preview only**, see below |
+| `LABS_EMAIL_FROM` | The SES-verified sender identity | as above |
+| `LABS_EMAIL_TO` | Where submissions land | as above |
+
+The AWS credentials are R21 Labs' own, not shared with another R21 project. That is a workspace
+rule rather than a preference: a key reused across projects cannot be rotated for one of them.
 
 ## Discovery
 
@@ -49,6 +57,28 @@ Every page carries its own `<title>`, description, canonical, OpenGraph card and
 That is worth stating because until 2026-08-22 none of it existed: robots and sitemap both 404'd, and all eleven entry pages shipped the *same* title and description — eleven identical rows in a search result, on a site whose second stated goal is SEO. It was invisible because two files were written expecting a sitemap and a feed nobody had been assigned to build. `tests/discovery.test.ts` now fails the build on a duplicate title, a duplicate description, a missing canonical, a relative `og:image`, or a draft in the feed.
 
 `robots.txt` allows the AI crawlers deliberately. R21 sells getting clients cited by AI search; a site that blocked GPTBot would be arguing against its own product.
+
+## Forms
+
+Three, all posting to one endpoint (`app/api/submit/route.ts`): suggest a tool, subscribe, and a
+scoped work-with-us enquiry. They share one component and one validator, because between them they
+are nine fields and three hand-built forms would drift.
+
+**`/api/submit` is the only route on this site that is not prerendered.** `tests/boundary.test.ts`
+asserts that every route is, which is what stopped the OpenGraph card being rendered on demand — so
+rather than weaken that rule to "unless it's under `/api`", the test names this route explicitly and
+separately asserts that an allowlisted route imports no content. Adding a second dynamic route means
+editing a test on purpose.
+
+**In production, an unconfigured sender returns 503.** The obvious implementation — log in dev, send
+in prod, fall back to log when env is missing — is exactly how R21 shipped three client sites whose
+contact forms captured nothing while thanking every visitor. The fallback is a development
+convenience and `lib/email.ts` refuses it when `VERCEL_ENV=production`. That refusal has its own
+test, and it is the one in this repo most worth keeping green.
+
+Spam handling is a honeypot field and length caps, nothing more. A filled honeypot gets the same 200
+and the same response body a real submission gets, and sends nothing — telling a script which field
+gave it away is how you train the next attempt.
 
 ## Three architecture decisions
 
@@ -60,11 +90,10 @@ That is worth stating because until 2026-08-22 none of it existed: robots and si
 
 ## Known limits
 
-- **11 published entries of ~18 planned.** Release 1 is not complete.
+- **15 published entries of ~18 planned.** Release 1 is not complete.
 - **Four release-1 builds are drafts with no public artifact** — `pf-mcp-jwks`, `r21-paid-ads-mcp`, `r21-google-tooling`, `whisper-local`. Each draft records the registry searches that came up empty (2026-08-22) instead of guessing.
 - **Karpathy Skills has no LICENSE file upstream**, and the repo moved from `forrestchang` to `multica-ai`. The entry publishes with that finding stated rather than a borrowed licence value.
-- **Both playbooks are drafts pending Carlos's review** — deep-method disclosure is his call, not the build's.
-- **No entry uses markdown structure yet.** Bodies now render headings, lists, tables, code and links (`components/site/EntryBody.tsx`), but every one of the 17 entries is currently flat paragraphs — so the capability is real and the visible change today is zero. Published bodies total roughly 1,100 words across 11 pages, about 100 words each. **This, not the design, is what stands between the site and its SEO goal.**
+- **Only the two playbooks use markdown structure.** They were published 2026-08-23 at 1,508 and 1,101 words, with headings and real tables — the first content to use the renderer in `components/site/EntryBody.tsx`. The other thirteen published entries are still flat paragraphs totalling about 1,040 words between them, roughly 80 words each. **This, not the design, is what stands between the site and its SEO goal.**
 - **The OpenGraph card is not set in Montserrat.** Satori cannot read woff2, so matching the brand typeface would mean fetching a TTF over the network at build time — and when that fetch fails `ImageResponse` renders a valid card in a fallback face with no error. The dependency is removed rather than risked; the card carries the brand through colour and structure. Fix properly by committing a Montserrat TTF (OFL permits it) and reading from disk.
 
 ## AI assistance

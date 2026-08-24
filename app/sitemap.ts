@@ -17,6 +17,16 @@ import { SITE_URL, canonicalPath } from "@/lib/site";
  * claim on the page was actually checked, which is the thing a reader — and a
  * crawler — cares about here.
  */
+/**
+ * Pages that are not entries.
+ *
+ * Listed here rather than discovered, because the sitemap is a claim about what
+ * this site wants indexed and a filesystem walk would make that claim by
+ * accident. `tests/discovery.test.ts` states the same two paths independently —
+ * if the test imported this constant it would assert nothing.
+ */
+const STATIC_PAGES = ["/suggest", "/contact"] as const;
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries = getPublishedEntries();
 
@@ -33,6 +43,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
+    ...STATIC_PAGES.map((path) => ({
+      url: `${SITE_URL}${path}`,
+      changeFrequency: "yearly" as const,
+      priority: 0.4,
+    })),
     ...entries.map((entry) => ({
       url: `${SITE_URL}${canonicalPath(entry)}`,
       lastModified: entry.verifiedOn

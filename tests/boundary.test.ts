@@ -43,7 +43,41 @@ describe("publishing boundary", () => {
   });
 });
 
+/**
+ * Routes that are dynamic ON PURPOSE, named one by one.
+ *
+ * `/api/submit` is the form endpoint added 2026-08-23. A POST handler cannot be
+ * prerendered, so the assertion below had to admit an exception — and the shape
+ * of the exception is the whole point. A pattern like "anything under /api" or
+ * "any route with no page.tsx" would have given back the guarantee this file
+ * exists to hold, silently, the first time someone added a second endpoint.
+ * An explicit list means the next dynamic route requires editing a test, which
+ * is a conversation rather than an accident.
+ *
+ * What the static-only claim protected was never "no server code" for its own
+ * sake — it was that no CONTENT is resolved at request time, so draft safety
+ * cannot depend on a runtime lookup staying guarded. This route reads no
+ * content at all, which is asserted directly below.
+ */
+const INTENTIONALLY_DYNAMIC = new Set(["/api/submit"]);
+
 describe("static-only routing", () => {
+  it("keeps the dynamic-route exception to routes that touch no content", () => {
+    // The exception is only safe while it stays true. A form endpoint that
+    // started importing the content layer would be a draft-leak surface with a
+    // permission slip already signed.
+    for (const route of INTENTIONALLY_DYNAMIC) {
+      const file = path.join(process.cwd(), "app", `${route}/route.ts`);
+      expect(fs.existsSync(file), `${route} is allowlisted but does not exist.`).toBe(true);
+
+      const source = fs.readFileSync(file, "utf8");
+      expect(
+        /@\/lib\/content/.test(source),
+        `${route} is allowlisted as dynamic AND reads content. One or the other.`,
+      ).toBe(false);
+    }
+  });
+
   it("has no dynamic fallback route in the prerender manifest", () => {
     // `export const dynamicParams = false` is the fix; this asserts the OUTPUT.
     // Without it an unknown /x/y invokes the renderer at request time, which
@@ -100,7 +134,8 @@ describe("static-only routing", () => {
     const dynamic = Object.keys(manifest)
       .filter((route) => !IGNORED.has(route))
       .map((route) => route.replace(/\/(page|route)$/, "") || "/")
-      .filter((route) => !prerendered.has(route));
+      .filter((route) => !prerendered.has(route))
+      .filter((route) => !INTENTIONALLY_DYNAMIC.has(route));
 
     expect(dynamic, "These routes render on demand. Give them generateStaticParams.").toEqual(
       [],

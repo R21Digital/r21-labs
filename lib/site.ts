@@ -11,18 +11,19 @@ import type { Entry } from "./schema";
  */
 
 /**
- * 🔴 The LAUNCH domain, not the current one.
+ * The live domain.
  *
- * `r21labs.com` is bought (Cloudflare, 2026-08-19) but not yet pointed at
- * Vercel, so today the site answers on `r21-labs.vercel.app`. Canonicals still
- * name `r21labs.com`, deliberately:
+ * Written here BEFORE it resolved. `r21labs.com` was bought on 2026-08-19 and
+ * the DNS cutover landed on 2026-08-23; in between, the site answered only on
+ * `r21-labs.vercel.app` while every canonical already named the real domain.
  *
- * - Nothing is indexed yet (there was no sitemap until now and the domain does
- *   not resolve), so there is no existing ranking to send to a dead URL.
- * - The alternative — canonicalising the preview alias — is the worse failure.
- *   It survives the DNS cutover silently and permanently tells crawlers the
- *   `.vercel.app` copy is the original. That is how a site ends up competing
- *   with itself, and nobody notices because every page still renders.
+ * That was the deliberate call and it is worth keeping the reasoning, because
+ * the tempting alternative fails silently. Canonicalising the preview alias
+ * survives the cutover and permanently tells crawlers the `.vercel.app` copy is
+ * the original — a site competing with itself, with every page still rendering
+ * and nothing to notice. Pointing at a URL that did not resolve yet cost
+ * nothing by comparison: nothing was indexed, so there was no ranking to send
+ * anywhere.
  *
  * Overridable so a fork or a staging deploy is not stuck claiming production.
  * `NEXT_PUBLIC_` because metadata is evaluated during static generation.
@@ -35,6 +36,24 @@ export const SITE_NAME = "R21 Labs";
 
 export const SITE_DESCRIPTION =
   "The AI tools R21 tested and recommends, the software R21 built, and the playbooks that connect them.";
+
+/**
+ * The site-wide OpenGraph card.
+ *
+ * 🔴 A page that declares its own `openGraph` block does NOT inherit the root
+ * one, and the `app/opengraph-image.tsx` file convention covers `/` rather than
+ * cascading to every route. So `/suggest` and `/contact` shipped with a
+ * page-specific og:title and NO og:image at all — a card that renders blank
+ * everywhere it is shared, while view-source looks complete.
+ *
+ * Caught by `tests/discovery.test.ts` the first time it ran against them, which
+ * is the same defect it was written for in August: the OpenGraph block looking
+ * right and doing nothing. Any new page that sets `openGraph` must spread this.
+ *
+ * Relative on purpose — `metadataBase` in app/layout.tsx makes it absolute, and
+ * that resolution is itself asserted.
+ */
+export const OG_IMAGE = { images: ["/opengraph-image"] };
 
 /** The legal entity behind the site — used for Organization structured data. */
 export const ORGANIZATION = {

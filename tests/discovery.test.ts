@@ -105,8 +105,13 @@ describe("discovery layer — build output", () => {
     const sitemap = fs.readFileSync(builtFile("sitemap.xml") as string, "utf8");
     const listed = [...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => decode(m[1]));
 
+    // Stated here rather than imported from app/sitemap.ts on purpose: a test
+    // that reads the same list the route reads would pass no matter what the
+    // route emitted.
     const expected = [
       SITE_URL,
+      `${SITE_URL}/suggest`,
+      `${SITE_URL}/contact`,
       ...getPublishedEntries().map((entry) => `${SITE_URL}${canonicalPath(entry)}`),
     ];
 

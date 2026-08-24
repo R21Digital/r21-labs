@@ -312,6 +312,27 @@ export default function Home() {
             and links are verified against the registry.
           </p>
         ) : null}
+
+        {/* The ask sits at the BOTTOM of the catalog, not in the hero. Someone
+            who has just scrolled the whole list is the one person on the page
+            qualified to notice what is missing from it — and asking before they
+            have seen anything is asking a stranger to do R21's homework. */}
+        <section className="border-t border-[var(--hairline)] pt-8">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Something missing?
+          </h2>
+          <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+            If you run something that belongs here — especially if it does a job people
+            currently pay for — send it over. Every suggestion is read by a person, and most
+            are not published.
+          </p>
+          <Link
+            href="/suggest"
+            className="tabular mt-5 inline-flex items-center rounded-[var(--radius-control)] border border-accent bg-accent/[0.12] px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-ink transition-colors duration-[var(--dur-control)] hover:bg-accent/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          >
+            Suggest a tool
+          </Link>
+        </section>
       </div>
     </>
   );
