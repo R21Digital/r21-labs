@@ -10,6 +10,33 @@ stack: Next.js · Supabase · Vercel
 problem: Puerto Rico's cemetery and burial records are scattered and hard to search.
 ---
 
-Live. Invite is signup, Google Sign-In is on.
+Live, with invite-based signup and Google Sign-In. It serves roughly **5,900
+records** across the yards currently loaded — a figure counted from the store
+rather than typed into a config, which is not a stylistic preference.
 
-Serving roughly 5,900 records across the yards currently loaded.
+## Why every count is a query
+
+R21 has shipped a client site that advertised 8 cemeteries while serving 130,
+because the number came from a status enum somebody forgot to update rather than
+from the data. Nobody noticed, because the page rendered perfectly.
+
+So on this build every displayed count is a `count()` over the store, and a
+figure that cannot be produced is shown as unavailable rather than estimated.
+That rule came out of this project and now applies across R21's work, including
+this site.
+
+## What the source data does not tell you
+
+The public datasets behind a burial record are not as clean as they present.
+The clearest example: one federal source marks **spouses interred in a veteran's
+plot as veterans themselves**. The row is structurally valid, the field is
+populated, and nothing about it looks wrong — it is only wrong if you know what
+the field means.
+
+That is the general shape of this whole project. The hard part is not ingesting
+public records; it is that a public record can be internally consistent and still
+assert something false about a real person, and the correction has to happen
+before publication rather than after somebody recognises their own family.
+
+Search currently returns the first 200 matches. That is a known limit rather than
+a design decision, and it is on the list.

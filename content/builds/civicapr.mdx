@@ -10,6 +10,30 @@ stack: Next.js · Supabase · Stripe · Vercel
 problem: Puerto Rico's civic and legislative record is public but not navigable.
 ---
 
-Live, trademarked, and taking payment through Stripe.
+Live, trademarked, and taking payment through Stripe. The record it indexes was
+already public — the work is making it something a person can actually move
+through.
 
-Detail pages are cached; the hubs went from 58.5k rows per request to roughly 975.
+## What the caching bought
+
+The directory hubs were reading **58,500 rows per request** and rendering the
+whole set to show a page of it. They now read roughly **975**, and the
+business-directory route went from about **5.0 seconds to 0.4**.
+
+The number that mattered more was not the latency but the sharing: under a probe
+of 24 concurrent requests, all 24 hit **one** cache entry rather than 24 separate
+renders. That is the difference between a cache that helps a single user and one
+that holds up under traffic, and it is not visible from a single-request timing.
+
+## The failure worth naming
+
+A scheduled sync silently truncated for days while **every status check stayed
+green**. It sorted newest-first and re-fetched the same newest page on every run,
+so each run genuinely succeeded — it just never advanced. The job reported
+success, the row count grew slowly enough to look plausible, and nothing in the
+monitoring was asking the one question that would have caught it.
+
+Fixed by resuming from a stored watermark rather than re-sorting, which makes
+"where did the last run stop" a value on disk instead of an assumption about
+ordering. The general lesson is the one R21 keeps relearning: a green check
+proves a run finished, not that it did anything.

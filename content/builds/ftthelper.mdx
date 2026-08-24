@@ -10,5 +10,34 @@ stack: Next.js · Supabase · PWA
 problem: Tabletop reference material is spread across books nobody has at the table.
 ---
 
-A shipped PWA. The compendium is a phone reference — publisher badges across all seven card
-types, a combat-first stat block, and 44px touch targets.
+A shipped PWA. The compendium is built as a phone reference rather than as a
+website that happens to work on a phone, and that distinction drove most of the
+design decisions in it.
+
+## Designed for the actual posture
+
+The user is at a table, mid-turn, with one hand on a phone and other people
+waiting. That rules out a lot:
+
+- **Combat-first stat blocks.** The numbers needed during a turn come before the
+  lore, because the lore is never what is being looked up at that moment.
+- **Publisher badges across all seven card types**, so the source of a rule is
+  visible without opening it. Which book a rule came from is the second question
+  every time, and answering it inline removes a round trip.
+- **44px touch targets** throughout — the accessibility floor, which stops being
+  a guideline when someone is tapping quickly and not looking carefully.
+
+Installable, and it works offline once loaded. A reference tool that needs
+connectivity is a reference tool that fails in exactly the venue it was built
+for.
+
+## The lesson from the email side
+
+The build already had a full email system before anyone asked for one, and the
+digest it sends was not reading the opt-out preference — not because the check
+failed, but because the argument carrying it was optional and nobody passed it.
+It was fixed by making the argument **required**, so the compiler asks the
+question rather than a reviewer.
+
+Any parameter that can be skipped will be skipped eventually. If skipping it has
+a consequence someone would care about, it should not be skippable.

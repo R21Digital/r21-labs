@@ -10,8 +10,35 @@ stack: TypeScript · MCP SDK · Supabase RLS
 problem: Getting campaign data into Claude Desktop without handing it database credentials.
 ---
 
-A read-only MCP server over Fantasy Tabletop Helper's Postgres. An assistant
-gets campaigns, sessions, notes and codex entries scoped by row-level security,
-so there is one credential boundary instead of a shared service password.
+A read-only MCP server over Fantasy Tabletop Helper's Postgres. An assistant gets
+campaigns, sessions, notes and codex entries scoped by row-level security, so
+there is one credential boundary instead of a shared service password.
+
+## What "read-only" has to mean
+
+Read-only is easy to claim and easy to lose. The version that holds up is
+structural rather than intentional: the tool surface exposes retrieval operations
+only, so there is no mutating path to reach for, and access is scoped by
+row-level security at the database rather than by the server deciding what to
+return.
+
+The distinction matters because a service-role key bypasses row-level security
+entirely. A server holding one is not enforcing a boundary — it is choosing to
+respect one, and a choice can be revised by the next feature.
+
+## The failure this design avoids
+
+A writer running with elevated privileges does not just risk writing the wrong
+row. It writes rows **attributed to the wrong person**, and those rows look
+completely legitimate afterwards.
+
+R21 has seen exactly this on another system: an ingest process running with
+elevated credentials stamped hundreds of notes with real users' IDs, including a
+user who had never signed in. Every row was valid. The only visible tell was that
+every affected user's most recent note shared a single date.
+
+That is why the boundary here is where the data lives rather than in the layer
+that reads it. A server that cannot escalate cannot forge attribution, and
+attribution is the thing you cannot audit your way back to once it is wrong.
 
 Verified against the GitHub API on 2026-08-22: public, MIT.
