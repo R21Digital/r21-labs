@@ -22,7 +22,8 @@ Four guards fail `next build`. They do not warn.
 | `required-fields` | An entry missing the fields spec §3 requires for its type |
 | `attribution` | A published tool with no `source`, `sourceUrl`, or `license` |
 | `staleness` | A `verifiedOn` older than 183 days, missing, or in the future |
-| `links` | A dead outbound link on a published entry |
+| `links` | A dead outbound link on a published entry — **including links written in prose**, not just frontmatter |
+| `internal-links` | A link to a path this site does not publish. Offline, so a broken internal link is never masked by the network being down |
 
 There is deliberately **no skip flag**. An env var to bypass a guard gets set once during a bad afternoon and never unset.
 

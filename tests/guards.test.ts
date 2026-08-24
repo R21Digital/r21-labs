@@ -9,7 +9,12 @@ import {
 } from "@/lib/guards/staleness";
 import { checkAttribution } from "@/lib/guards/attribution";
 import { assertNoDrafts, publishedOnly } from "@/lib/guards/published";
-import { checkLinks } from "@/lib/guards/links";
+import {
+  bodyLinks,
+  checkLinks,
+  deadInternalLinks,
+  outboundUrls,
+} from "@/lib/guards/links";
 import { checkRequiredFields } from "@/lib/guards/required-fields";
 import type { Entry } from "@/lib/schema";
 
@@ -308,6 +313,69 @@ describe("adversarial review 2026-08-20 - closed holes", () => {
       message = (error as Error).message;
     }
     expect(message).toMatch(/must be a LIST/);
+  });
+});
+
+describe("guard 4b — links written in PROSE (added 2026-08-24)", () => {
+  /**
+   * The gap this closes: `outboundUrls` read frontmatter only, while the README
+   * said the guard rejects "a dead outbound link on a published entry" with no
+   * qualifier. So the first time an entry cited a vendor's docs inline, the
+   * citation was unchecked — on the one site whose product is that its claims
+   * survive being followed.
+   */
+  const withBody = (body: string) => entry({ body });
+
+  it("finds external links in the body and puts them in the checked set", () => {
+    const e = withBody("See [the docs](https://example.com/docs) for the rule.");
+    expect(bodyLinks(e).external).toEqual(["https://example.com/docs"]);
+    expect(outboundUrls(e)).toContain("https://example.com/docs");
+  });
+
+  it("separates internal links from external ones", () => {
+    const e = withBody("Compare [n8n](/tools/n8n) and [docs](https://x.test/a).");
+    expect(bodyLinks(e).internal).toEqual(["/tools/n8n"]);
+    expect(bodyLinks(e).external).toEqual(["https://x.test/a"]);
+  });
+
+  it("ignores a fragment when resolving an internal link", () => {
+    expect(bodyLinks(withBody("[x](/tools/n8n#why)")).internal).toEqual(["/tools/n8n"]);
+  });
+
+  it("fails an internal link that resolves to nothing", () => {
+    const entries = [
+      entry({ slug: "n8n", filePath: "tools/n8n.mdx", body: "" }),
+      entry({
+        slug: "a",
+        filePath: "tools/a.mdx",
+        body: "see [gone](/tools/does-not-exist)",
+      }),
+    ];
+    const dead = deadInternalLinks(entries, []);
+    expect(dead).toHaveLength(1);
+    expect(dead[0]).toContain("/tools/does-not-exist");
+  });
+
+  it("accepts an internal link to a published entry, and to a listed static page", () => {
+    // Vacuity guard: a checker that rejected everything would pass the test
+    // above and fail the whole site.
+    const entries = [
+      entry({ slug: "n8n", filePath: "tools/n8n.mdx", body: "" }),
+      entry({
+        slug: "a",
+        filePath: "tools/a.mdx",
+        body: "[ok](/tools/n8n) and [also](/suggest) and [home](/)",
+      }),
+    ];
+    expect(deadInternalLinks(entries, ["/suggest"])).toEqual([]);
+  });
+
+  it("does not check links inside a DRAFT", () => {
+    // Same reasoning as the rest of guard 4: a draft's paths are still a guess.
+    const entries = [
+      entry({ status: "draft", filePath: "tools/d.mdx", body: "[x](/tools/nope)" }),
+    ];
+    expect(deadInternalLinks(entries, [])).toEqual([]);
   });
 });
 

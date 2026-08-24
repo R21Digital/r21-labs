@@ -35,13 +35,13 @@ rather than a number someone typed.
 They are not interchangeable, and the difference is who is trusted with what:
 
 - **Infrastructure R21 owns.** Automation and anything needing an external
-  trigger runs on **n8n, on R21's own server**. Hosting is **Vercel**, domains
+  trigger runs on **[n8n](/tools/n8n), on R21's own server**. Hosting is **Vercel**, domains
   sit at **Cloudflare**, data on **Supabase**, mail through **AWS SES**.
 - **Systems R21 operates on a client's behalf** — Stripe, Wix, Metricool,
   ClickUp, the Google surfaces. An agent reaching these is acting inside someone
   else's account, which is a different risk category from reading a repository.
-- **Reference and capability** — Context7, Exa, NotebookLM, Playwright,
-  Hugging Face. These bring information or ability in rather than reaching out to
+- **Reference and capability** — [Context7](/tools/context7), Exa, NotebookLM,
+  [Playwright](/tools/playwright), Hugging Face. These bring information or ability in rather than reaching out to
   a system of record.
 
 ## What "connected" is allowed to mean

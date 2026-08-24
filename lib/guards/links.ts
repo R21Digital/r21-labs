@@ -56,7 +56,62 @@ export function outboundUrls(entry: Entry): string[] {
     entry.repo,
     entry.liveUrl,
     ...(entry.replaces ?? []).map((replacement) => replacement.sourceUrl),
+    ...bodyLinks(entry).external,
   ].filter((url): url is string => typeof url === "string" && url.trim() !== "");
+}
+
+/**
+ * Links written in an entry's PROSE, which this guard did not see until
+ * 2026-08-24.
+ *
+ * 🔴 The gap: `outboundUrls` read frontmatter only, while the README stated the
+ * guard rejects "a dead outbound link on a published entry" — no qualifier. So
+ * the moment an entry cited a vendor's documentation inline, that citation was
+ * unchecked, on the one site whose product is that its claims survive being
+ * followed. The first such link went in the same day this was found.
+ *
+ * Internal links are the more interesting half. They cost no network call and
+ * they are the ones most likely to break silently: a slug gets renamed, an
+ * entry goes back to draft, and a page that still renders now links into a 404.
+ * Those are validated against the published set rather than fetched.
+ */
+export function bodyLinks(entry: Entry): { internal: string[]; external: string[] } {
+  const internal: string[] = [];
+  const external: string[] = [];
+
+  // Markdown inline links. Deliberately not a markdown parser: the bodies are
+  // hand-written MDX and this only has to find `](...)`.
+  for (const [, href] of entry.body.matchAll(/\]\(\s*([^)\s]+)/g)) {
+    if (href.startsWith("http://") || href.startsWith("https://")) external.push(href);
+    else if (href.startsWith("/")) internal.push(href.split("#")[0]);
+  }
+  return { internal, external };
+}
+
+/**
+ * Internal links that do not resolve to something this site publishes.
+ *
+ * Synchronous and offline on purpose. A broken internal link is a fact about
+ * the repository, knowable at build time, and it should never depend on the
+ * network being up to be caught.
+ */
+export function deadInternalLinks(entries: Entry[], staticPaths: string[]): string[] {
+  const published = entries.filter((entry) => entry.status === "published");
+
+  const valid = new Set<string>([
+    "/",
+    ...staticPaths,
+    ...published.map((entry) => `/${entry.filePath.split("/")[0]}/${entry.slug}`),
+  ]);
+
+  return published.flatMap((entry) =>
+    bodyLinks(entry)
+      .internal.filter((href) => !valid.has(href.replace(/\/$/, "") || "/"))
+      .map(
+        (href) =>
+          `${entry.filePath}: ${href} does not resolve — no published entry or page at that path`,
+      ),
+  );
 }
 
 export interface LinkReport {
