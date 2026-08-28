@@ -15,10 +15,10 @@
  * 2. **Env values are cleaned before use.** A UTF-8 BOM in a Vercel
  *    environment variable is invisible in the dashboard, invisible in
  *    `vercel env ls`, and invisible in the logs — only the runtime rejects it.
- *    This is not hypothetical: Pediatrix Caribbean's lead email was dead for an
- *    unknown stretch because `AWS_SES_REGION` held `﻿us-east-1`, written
- *    there by a PowerShell pipe. Fixing it exposed a second control character
- *    in an address underneath. Trimming and stripping the BOM costs nothing and
+ *    This is not hypothetical: one site's lead email was dead for an unknown
+ *    stretch because `AWS_SES_REGION` held `﻿us-east-1`, written there by a
+ *    PowerShell pipe. Fixing it exposed a second control character in an
+ *    address underneath. Trimming and stripping the BOM costs nothing and
  *    removes the whole class.
  *
  * The variable names match the rest of R21's fleet (`AWS_SES_*`, `ALERT_*`)
