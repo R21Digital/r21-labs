@@ -28,7 +28,11 @@
  * instead of being picked up from the environment.
  */
 
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import {
+  SESv2Client,
+  SendEmailCommand,
+  type SendEmailCommandInput,
+} from "@aws-sdk/client-sesv2";
 
 export type SendResult =
   | { ok: true; id: string; transport: "ses" | "log" }
@@ -39,6 +43,23 @@ export type Outbound = {
   text: string;
   html: string;
   replyTo?: string;
+  /**
+   * Recipient. Absent means ALERT_TO -- the R21 inbox -- which is what every
+   * notification wants. The visitor auto-reply is the only caller that sets it, and
+   * it must be an address that came through `parseSubmission`.
+   */
+  to?: string;
+  /**
+   * Display name prefixed to a bare ALERT_FROM, matching `fromHeader(brand)` in the
+   * rest of the R21 fleet. Absent keeps the historic bare-address behaviour.
+   */
+  brand?: string;
+  /**
+   * Blind copy, comma-separated. The visitor reply sets this to ALERT_BCC so the exact
+   * text a submitter received lands in R21's inbox -- monitoring by reading what went
+   * out, at the cost of no extra message.
+   */
+  bcc?: string;
 };
 
 /** Strips a BOM and surrounding whitespace. See note 2 above. */
@@ -113,6 +134,41 @@ export function __setTransportForTests(
   client = null;
 }
 
+/** ALERT_FROM may be bare or a full "Name <addr>" -- prefix the brand only when bare. */
+function fromHeader(brand?: string): string {
+  const from = env("ALERT_FROM")!;
+  return !brand || from.includes("<") ? from : `${brand} <${from}>`;
+}
+
+/**
+ * The SES parameters for one message.
+ *
+ * Extracted so the mapping can be asserted without AWS credentials. Swapping the
+ * transport cannot test this: the override is handed `mail` unchanged, so a test
+ * written against it passes whatever the mapping does.
+ */
+export function buildSendInput(mail: Outbound): SendEmailCommandInput {
+  return {
+    FromEmailAddress: fromHeader(mail.brand),
+    Destination: {
+      ToAddresses: [mail.to ?? env("ALERT_TO")!],
+      BccAddresses: mail.bcc
+        ? mail.bcc.split(",").map((a) => a.trim()).filter(Boolean)
+        : undefined,
+    },
+    ReplyToAddresses: mail.replyTo ? [mail.replyTo] : undefined,
+    Content: {
+      Simple: {
+        Subject: { Data: mail.subject, Charset: "UTF-8" },
+        Body: {
+          Text: { Data: mail.text, Charset: "UTF-8" },
+          Html: { Data: mail.html, Charset: "UTF-8" },
+        },
+      },
+    },
+  };
+}
+
 export async function sendNotification(mail: Outbound): Promise<SendResult> {
   if (override) return override(mail);
 
@@ -134,22 +190,7 @@ export async function sendNotification(mail: Outbound): Promise<SendResult> {
   }
 
   try {
-    const out = await ses().send(
-      new SendEmailCommand({
-        FromEmailAddress: env("ALERT_FROM"),
-        Destination: { ToAddresses: [env("ALERT_TO")!] },
-        ReplyToAddresses: mail.replyTo ? [mail.replyTo] : undefined,
-        Content: {
-          Simple: {
-            Subject: { Data: mail.subject, Charset: "UTF-8" },
-            Body: {
-              Text: { Data: mail.text, Charset: "UTF-8" },
-              Html: { Data: mail.html, Charset: "UTF-8" },
-            },
-          },
-        },
-      }),
-    );
+    const out = await ses().send(new SendEmailCommand(buildSendInput(mail)));
     // The MessageId is logged, not just returned. It is the only thread back
     // from "the form said it sent" to a specific SES message, and a bounce
     // investigation with no id has nothing to search on. This is a trail, not a

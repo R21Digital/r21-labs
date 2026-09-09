@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { isDeployed, missingEmailEnv, sendNotification } from "@/lib/email";
 import { parseSubmission, renderNotification } from "@/lib/forms";
+import { sendVisitorReply } from "@/lib/visitor-reply";
 
 /**
  * The one server route on an otherwise fully static site.
@@ -117,6 +118,13 @@ export async function POST(request: Request) {
       missing: missingEmailEnv(),
     });
   }
+
+  // The visitor's own reply. Scheduled AFTER the notification to R21 has succeeded and
+  // after the response is decided, so nothing here can affect what the submitter is
+  // told or whether R21 receives the lead. sendVisitorReply never throws out.
+  after(async () => {
+    await sendVisitorReply(parsed.submission);
+  });
 
   return wasForm ? redirectTo(request, "sent") : NextResponse.json(ACCEPTED);
 }
