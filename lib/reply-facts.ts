@@ -37,6 +37,13 @@ for that review -- not a queue position and not a commitment to publish.
 R21 Labs covers software and developer tooling. Websites, marketing, SEO and
 advertising are R21 Digital's side, at r21digital.com.
 
+R21 also builds custom software for clients: AI agents, internal tools, integrations
+and apps. The contact form on r21labs.com is how that work starts, and someone at R21
+replies personally to scope it.
+
+If someone describes something they want built, do not point them to the tool list.
+Invite them to reply to this email so R21 can scope it with them.
+
 Contact: replying to this email reaches R21 directly.
 `.trim();
 

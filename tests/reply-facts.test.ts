@@ -96,3 +96,19 @@ describe("renderShell", () => {
     expect(html.match(/<p /g)?.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// 2026-09-10 live test: asked whether R21 builds a custom internal tool, the composed reply
+// said Labs covers "publicly available tools, not custom internal tools" and pointed at the
+// tool list -- from a page titled "Work with R21". Every guard passed; the facts never said
+// R21 builds software, so the model safely declined the sale. A reply can only say what
+// this sheet says, so the sheet is what these tests pin.
+describe("LABS_FACTS — build enquiries", () => {
+  it("states that R21 builds custom software for clients", () => {
+    expect(LABS_FACTS).toMatch(/builds custom software/i);
+  });
+
+  it("routes someone who wants something built to a conversation, not the tool list", () => {
+    expect(LABS_FACTS).toMatch(/describes something they want built/i);
+    expect(LABS_FACTS).toMatch(/scope it/i);
+  });
+});
