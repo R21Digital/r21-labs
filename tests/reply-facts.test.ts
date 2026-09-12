@@ -60,6 +60,19 @@ describe("fallbackReply", () => {
     }
   });
 
+  // Codex 2026-09-12: the reply goes to whatever address was typed, so any visitor-typed
+  // text in it is text a stranger chose, sent from a verified R21 domain. The subject is the
+  // part a recipient reads without opening -- it carries none.
+  it("puts no visitor-typed text in any subject", () => {
+    const planted = "BUY-CHEAP-PILLS-NOW";
+    const kinds = [
+      { kind: "subscribe", email: "a@b.com" },
+      { kind: "suggestion", toolName: planted, toolUrl: "u", replaces: "", why: "w", email: "a@b.com" },
+      { kind: "contact", name: planted, email: "a@b.com", organization: planted, message: planted },
+    ] as const;
+    for (const s of kinds) expect(fallbackReply(s).subject).not.toContain(planted);
+  });
+
   it("names no price in any variant", () => {
     const kinds = [
       { kind: "subscribe", email: "a@b.com" },

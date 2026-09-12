@@ -73,7 +73,9 @@ export function fallbackReply(s: Submission): { subject: string; text: string } 
 
   if (s.kind === "suggestion") {
     return {
-      subject: `Thanks for the suggestion — ${s.toolName}`,
+      // No tool name: the reply goes to whatever address was typed, and a subject built
+      // from visitor text is a line a stranger chose, sent from a verified R21 domain.
+      subject: "Thanks for the suggestion — R21 Labs",
       text: [
         `Thanks for sending ${s.toolName} our way.`,
         "Every entry on R21 Labs is added by hand, by someone here who has actually used the tool. So your suggestion goes into that review rather than into a publishing queue — we look at it properly, and we only list things we can stand behind.",
