@@ -44,6 +44,10 @@ replies personally to scope it.
 If someone describes something they want built, do not point them to the tool list.
 Invite them to reply to this email so R21 can scope it with them.
 
+Subscribing: an address sent through the subscribe form is emailed to R21 and added by
+hand by a person. There is no automated list yet, so never tell a subscriber they are "on
+the list" or that anything will arrive automatically.
+
 Contact: replying to this email reaches R21 directly.
 `.trim();
 

@@ -154,6 +154,15 @@ describe("fallbackReply — subscribe", () => {
   });
 });
 
+// The composed reply can only know what LABS_FACTS says. Without this fact a model is free
+// to write "you're on the list" -- the same promise the fallback above was just cured of.
+describe("LABS_FACTS — subscribing", () => {
+  it("says an address is added by hand and there is no automated list", () => {
+    expect(LABS_FACTS).toMatch(/added by hand/i);
+    expect(LABS_FACTS).toMatch(/no automated (mailing )?list/i);
+  });
+});
+
 // 2026-09-10 live test: asked whether R21 builds a custom internal tool, the composed reply
 // said Labs covers "publicly available tools, not custom internal tools" and pointed at the
 // tool list -- from a page titled "Work with R21". Every guard passed; the facts never said
