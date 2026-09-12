@@ -19,6 +19,30 @@ import { renderShell } from "./reply-shell";
 
 type Composed = { ok: true; subject: string; text: string } | { ok: false };
 
+/** A fake "Re:" / "Fwd:" is a spam tell -- this is the first message in the thread. */
+function cleanSubject(subject: string): string {
+  return subject.replace(/^(?:\s*(?:re|fwd?)\s*:\s*)+/i, "").trim();
+}
+
+/**
+ * True when the composed reply repeats text the visitor typed into a suggestion.
+ *
+ * The reply goes to whatever address was typed, so repeated text is a stranger's words sent
+ * from a verified R21 domain. The model is told not to (LABS_BRAND.forbid); this is the
+ * guarantee, and it falls back to the template rather than editing the draft.
+ *
+ * Suggestion fields only. A contact reply greeting someone by name is the point of it; the
+ * per-IP rate limit on /api/submit is what bounds that lane.
+ */
+function repeatsVisitorText(s: Submission, subject: string, text: string): boolean {
+  if (s.kind !== "suggestion") return false;
+  const hay = `${subject}\n${text}`.toLowerCase();
+  return [s.toolName, s.toolUrl, s.replaces]
+    .map((v) => v.trim().toLowerCase())
+    .filter((v) => v.length >= 3)
+    .some((v) => hay.includes(v));
+}
+
 async function callComposer(submission: Submission): Promise<Composed> {
   const url = process.env.REPLY_COMPOSE_URL;
   const token = process.env.REPLY_COMPOSE_TOKEN;
@@ -68,9 +92,11 @@ export async function sendVisitorReply(
   let body: { subject: string; text: string };
   try {
     const composed = await compose(submission);
-    body = composed.ok
-      ? { subject: composed.subject, text: composed.text }
-      : fallbackReply(submission);
+    const subject = composed.ok ? cleanSubject(composed.subject) : "";
+    body =
+      composed.ok && subject && !repeatsVisitorText(submission, subject, composed.text)
+        ? { subject, text: composed.text }
+        : fallbackReply(submission);
   } catch {
     body = fallbackReply(submission);
   }

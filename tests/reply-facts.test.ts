@@ -73,6 +73,22 @@ describe("fallbackReply", () => {
     for (const s of kinds) expect(fallbackReply(s).subject).not.toContain(planted);
   });
 
+  // The suggestion fallback is also what goes out when a composed reply is refused for
+  // repeating the tool name -- so its body must not repeat it either. (A contact body still
+  // greets by first name; that is the point of it.)
+  it("puts no visitor-typed text in the suggestion body", () => {
+    const planted = "BUY-CHEAP-PILLS-NOW";
+    const r = fallbackReply({
+      kind: "suggestion",
+      toolName: planted,
+      toolUrl: `https://${planted}.example`,
+      replaces: planted,
+      why: planted,
+      email: "a@b.com",
+    });
+    expect(r.text).not.toContain(planted);
+  });
+
   it("names no price in any variant", () => {
     const kinds = [
       { kind: "subscribe", email: "a@b.com" },

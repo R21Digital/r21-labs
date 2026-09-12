@@ -20,6 +20,8 @@ export const LABS_BRAND = {
     "any price, rate or cost",
     "any promise about when someone will reply",
     "any statement or implication that a suggested tool will be added to the site",
+    "repeating the name, link or description of a suggested tool",
+    "a subject line that starts with Re: or Fwd:",
   ],
 };
 
@@ -77,7 +79,9 @@ export function fallbackReply(s: Submission): { subject: string; text: string } 
       // from visitor text is a line a stranger chose, sent from a verified R21 domain.
       subject: "Thanks for the suggestion — R21 Labs",
       text: [
-        `Thanks for sending ${s.toolName} our way.`,
+        // Not the tool's name -- this is also what goes out when a composed reply is refused
+        // for repeating it, so it must not repeat it either.
+        "Thanks for sending that tool our way.",
         "Every entry on R21 Labs is added by hand, by someone here who has actually used the tool. So your suggestion goes into that review rather than into a publishing queue — we look at it properly, and we only list things we can stand behind.",
         "If we do end up using it, you will see it on the site.",
         "— R21 Labs",
