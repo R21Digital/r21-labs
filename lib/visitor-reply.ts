@@ -86,7 +86,7 @@ export async function sendVisitorReply(
       subject: body.subject,
       text: body.text,
       html: renderShell({
-        brand: LABS_BRAND.name,
+        kind: submission.kind,
         preheader: body.text.slice(0, 90),
         text: body.text,
       }),

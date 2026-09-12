@@ -57,7 +57,8 @@ export function replyRecipient(s: Submission): string | null {
 export function fallbackReply(s: Submission): { subject: string; text: string } {
   if (s.kind === "subscribe") {
     return {
-      subject: "You are on the R21 Labs list",
+      // Not "on the list": there is none -- a person adds each address by hand.
+      subject: "Got your address — R21 Labs",
       text: [
         "Thanks for subscribing to R21 Labs.",
         "You will hear from us when something is genuinely worth your time — a new tool we have actually used, a build we have shipped, or a playbook. Not on a schedule, and not often.",

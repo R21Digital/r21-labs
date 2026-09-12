@@ -85,15 +85,72 @@ describe("LABS_BRAND / LABS_FACTS", () => {
 });
 
 describe("renderShell", () => {
+  const KINDS = ["contact", "subscribe", "suggestion"] as const;
+
   it("carries a preheader and escapes the body", () => {
-    const html = renderShell({ brand: "R21 Labs", preheader: "p", text: "a < b" });
+    const html = renderShell({ kind: "contact", preheader: "p", text: "a < b" });
     expect(html).toContain("a &lt; b");
     expect(html).toContain("p");
   });
 
   it("keeps paragraphs as separate blocks", () => {
-    const html = renderShell({ brand: "R21 Labs", preheader: "p", text: "one\n\ntwo" });
+    const html = renderShell({ kind: "contact", preheader: "p", text: "one\n\ntwo" });
     expect(html.match(/<p /g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("is a whole document that declares itself dark, so clients do not re-colour it", () => {
+    const html = renderShell({ kind: "contact", preheader: "p", text: "t" });
+    expect(html).toMatch(/^<!doctype html>/i);
+    expect(html).toContain('<meta name="color-scheme" content="dark">');
+    expect(html).toContain("#0a0a14");
+  });
+
+  it("labels each kind for what actually happened", () => {
+    expect(renderShell({ kind: "contact", preheader: "p", text: "t" })).toContain("Message received");
+    expect(renderShell({ kind: "subscribe", preheader: "p", text: "t" })).toContain(
+      "Subscription received",
+    );
+    expect(renderShell({ kind: "suggestion", preheader: "p", text: "t" })).toContain(
+      "Suggestion received",
+    );
+  });
+
+  it("links only to R21's own hosts", () => {
+    for (const kind of KINDS) {
+      const html = renderShell({ kind, preheader: "p", text: "t" });
+      const hrefs = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+      expect(hrefs.length).toBeGreaterThan(0);
+      for (const href of hrefs) {
+        expect(LABS_BRAND.urlHosts).toContain(new URL(href).hostname.replace(/^www\./, ""));
+      }
+    }
+  });
+
+  it("points a subscriber at the catalog and a suggester at the suggest form", () => {
+    expect(renderShell({ kind: "subscribe", preheader: "p", text: "t" })).toContain(
+      'href="https://r21labs.com/"',
+    );
+    expect(renderShell({ kind: "suggestion", preheader: "p", text: "t" })).toContain(
+      'href="https://r21labs.com/suggest"',
+    );
+  });
+
+  // The 2026-09-10 lost lead again, one layer up: a build enquiry pointed at the tool list.
+  // A contact reply's only call to action is replying.
+  it("gives a contact reply no button — the next step is a reply, not the tool list", () => {
+    const html = renderShell({ kind: "contact", preheader: "p", text: "t" });
+    expect(html).not.toContain("Browse R21 Labs");
+    expect(html).not.toContain("Suggest another tool");
+  });
+});
+
+// There is no list. An address is emailed to R21 and a person adds it by hand -- the footer's
+// subscribe copy was cut back to say so after adversarial review 2026-08-24, and the fallback
+// subject went on promising "the list" anyway.
+describe("fallbackReply — subscribe", () => {
+  it("never tells a subscriber they are on a list", () => {
+    const r = fallbackReply({ kind: "subscribe", email: "a@b.com" });
+    expect(`${r.subject}\n${r.text}`).not.toMatch(/on the .*list/i);
   });
 });
 
