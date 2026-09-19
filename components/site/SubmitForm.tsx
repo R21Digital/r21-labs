@@ -146,7 +146,12 @@ export default function SubmitForm({
       method="post"
       action="/api/submit"
       onSubmit={handleSubmit}
-      className={inline ? "flex flex-col gap-2 sm:flex-row sm:items-start" : "space-y-4"}
+      // `sm:flex-wrap` is what lets the full-width error region below take its
+      // own line. Without it that region sat in the row, claimed the width, and
+      // squeezed the input to its padding: 26px wide, placeholder never shown.
+      className={
+        inline ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start" : "space-y-4"
+      }
     >
       <input type="hidden" name="kind" value={kind} />
 
