@@ -73,7 +73,10 @@ function ReplacesBadge({ entry }: { entry: Entry }) {
 
 function EntryCard({ entry }: { entry: Entry }) {
   return (
-    <li>
+    // `min-w-0`: a grid item's automatic minimum is its content's width, and the
+    // meta line below is `nowrap` — without this the longest licence string sets
+    // the card's width and `truncate` never truncates.
+    <li className="min-w-0">
       <Link
         href={canonicalPath(entry)}
         className="block h-full rounded-[var(--radius-card)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
