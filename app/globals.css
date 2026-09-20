@@ -35,7 +35,10 @@
   /* Type on dark */
   --color-ink: #ffffff;
   --color-ink-muted: #9aa0b4;
-  --color-ink-dim: #6c6c6c;
+  /* Was #6c6c6c — 3.56:1 on canvas, 3.75 on #11111D. Provenance lines,
+     counts and form hints live here, so it has to clear AA. Hierarchy is
+     size and tracking, not a failing grey. Same hex as muted on purpose. */
+  --color-ink-dim: #9aa0b4;
 
   /* Light chapter — the direction reserves white sections for operational
      explanation and metric pauses. This is a section surface, NOT a light
@@ -60,6 +63,9 @@
      at lower visual weight. */
   --hairline: rgba(255, 255, 255, 0.06);
   --hairline-strong: rgba(255, 255, 255, 0.12);
+  /* Control boundaries. 0.12 composites to 1.37:1 against the field; WCAG
+     1.4.11 wants 3:1. ~0.4 of white on canvas clears that without a new hue. */
+  --hairline-control: rgba(255, 255, 255, 0.4);
 
   /* Motion.
      Two bands, and the split is deliberate — see the plan's "Conflict 2".

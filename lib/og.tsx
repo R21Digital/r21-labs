@@ -34,7 +34,7 @@ const CANVAS = "#0a0a14";
 const ACCENT = "#e94560";
 const INK = "#ffffff";
 const INK_MUTED = "#9aa0b4";
-const INK_DIM = "#6c6c6c";
+const INK_DIM = "#9aa0b4";
 const HAIRLINE = "rgba(255,255,255,0.10)";
 
 export interface OgCard {

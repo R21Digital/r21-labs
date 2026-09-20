@@ -45,7 +45,7 @@ const CANVAS = "#0a0a14";
 const SURFACE = "#13131f";
 const ACCENT = "#e94560";
 const INK = "#ffffff";
-/** Footer and fine print. ink-dim (#6c6c6c) fails AA at this size on the canvas; this passes. */
+/** Footer and fine print. Same hex as --color-ink-muted / the raised ink-dim. */
 const INK_MUTED = "#9aa0b4";
 /** --hairline-strong (white at 12%) flattened over SURFACE. */
 const HAIRLINE = "#2f2f3a";

@@ -241,9 +241,9 @@ function ReplacesBlock({ entry }: { entry: Entry }) {
 
   return (
     <section className="mt-8 rounded-[var(--radius-card)] border border-accent/25 bg-accent/[0.05] p-5">
-      <h2 className="font-mono text-[11px] uppercase tracking-widest text-accent">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-accent">
         Replaces
-      </h2>
+      </p>
       <ul className="mt-3 space-y-2.5">
         {entry.replaces.map((replacement) => (
           <li

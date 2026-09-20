@@ -61,10 +61,10 @@ function ReplacesBadge({ entry }: { entry: Entry }) {
       {entry.replaces.map((replacement) => (
         <span
           key={replacement.tool}
-          className="tabular inline-flex items-baseline gap-1.5 rounded-[var(--radius-control)] border border-accent/30 bg-accent/[0.07] px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-accent"
+          className="tabular inline-flex items-baseline gap-1.5 rounded-[var(--radius-control)] border border-accent bg-accent/[0.07] px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-accent"
         >
           replaces {replacement.tool}
-          <span className="text-accent/70">{replacement.pricedAt}</span>
+          <span className="text-accent">{replacement.pricedAt}</span>
         </span>
       ))}
     </p>
@@ -93,7 +93,7 @@ function EntryCard({ entry }: { entry: Entry }) {
               </h3>
               <p className="mt-1.5 text-sm leading-snug text-ink-muted">{cardLine(entry)}</p>
               <ReplacesBadge entry={entry} />
-              <p className="tabular mt-2.5 truncate font-mono text-[10px] uppercase tracking-wider text-ink-dim">
+              <p className="tabular mt-2.5 truncate font-mono text-[11px] uppercase tracking-wider text-ink-dim">
                 {entry.source ?? entry.stack} · {entry.license ?? "R21"} · {entry.verifiedOn}
               </p>
             </div>
@@ -182,7 +182,7 @@ function PlaybookSection({ entries }: { entries: Entry[] }) {
                 <p className="mt-1.5 max-w-2xl text-sm leading-snug text-ink-muted">
                   {entry.situation}
                 </p>
-                <p className="tabular mt-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-dim">
+                <p className="tabular mt-2.5 font-mono text-[11px] uppercase tracking-wider text-ink-dim">
                   {readingMinutes(entry)} min read · {entry.verifiedOn}
                 </p>
               </FrostedCard>
@@ -271,7 +271,7 @@ export default function Home() {
                 <a
                   key={category}
                   href={`#${category}`}
-                  className="tabular inline-flex items-baseline gap-2 rounded-[var(--radius-control)] border border-[var(--hairline-strong)] px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted transition-colors duration-[var(--dur-control)] hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                  className="tabular inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--hairline-strong)] px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted transition-colors duration-[var(--dur-control)] hover:border-accent hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
                 >
                   {CATEGORY_LABEL[category]}
                   <span className="text-ink-dim">{count}</span>
@@ -279,9 +279,9 @@ export default function Home() {
               );
             })}
             {replacements.length > 0 ? (
-              <span className="tabular inline-flex items-baseline gap-2 rounded-[var(--radius-control)] border border-accent/30 bg-accent/[0.07] px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent">
+              <span className="tabular inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-accent bg-accent/[0.07] px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent">
                 replacing paid tools
-                <span className="text-accent/70">{replacements.length}</span>
+                <span className="text-accent">{replacements.length}</span>
               </span>
             ) : null}
           </nav>
