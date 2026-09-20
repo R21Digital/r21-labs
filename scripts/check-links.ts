@@ -14,7 +14,7 @@ import { checkLinks, deadInternalLinks } from "../lib/guards/links";
  * for the same reason the sitemap lists them: a filesystem walk would make the
  * claim by accident.
  */
-const STATIC_PATHS = ["/suggest", "/contact"];
+const STATIC_PATHS = ["/suggest", "/contact", "/blog"];
 
 const entries = readEntriesUnguarded();
 const published = entries.filter((entry) => entry.status === "published");

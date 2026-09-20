@@ -73,6 +73,9 @@ export default function Footer() {
           </div>
 
           <nav aria-label="Site" className="flex flex-col gap-2.5 sm:items-end">
+            <Link href="/blog" className={linkClass}>
+              Notes
+            </Link>
             <Link href="/suggest" className={linkClass}>
               Suggest a tool
             </Link>

@@ -91,7 +91,7 @@ function EntryCard({ entry }: { entry: Entry }) {
               <h3 className="font-display text-base font-semibold leading-tight text-ink">
                 {entry.title}
               </h3>
-              <p className="mt-1.5 text-sm leading-snug text-ink-muted">{cardLine(entry)}</p>
+              <p className="mt-1.5 text-base leading-snug text-ink-muted">{cardLine(entry)}</p>
               <ReplacesBadge entry={entry} />
               <p className="tabular mt-2.5 truncate font-mono text-[11px] uppercase tracking-wider text-ink-dim">
                 {entry.source ?? entry.stack} · {entry.license ?? "R21"} · {entry.verifiedOn}
@@ -127,7 +127,7 @@ function Section({
           {entries.length}
         </span>
       </div>
-      <p className="mt-2.5 max-w-2xl text-sm text-ink-muted">{blurb}</p>
+      <p className="mt-2.5 max-w-2xl text-base text-ink-muted">{blurb}</p>
       <ul className="mt-5 grid gap-3.5 sm:grid-cols-2">
         {entries.map((entry) => (
           <EntryCard key={entry.slug} entry={entry} />
@@ -164,7 +164,7 @@ function PlaybookSection({ entries }: { entries: Entry[] }) {
           {entries.length}
         </span>
       </div>
-      <p className="mt-2.5 max-w-2xl text-sm text-ink-muted">
+      <p className="mt-2.5 max-w-2xl text-base text-ink-muted">
         How R21 wires and runs the things above, written from the real thing rather than
         assembled from a tool list. Long-form.
       </p>
@@ -179,7 +179,7 @@ function PlaybookSection({ entries }: { entries: Entry[] }) {
                 <h3 className="font-display text-base font-semibold leading-tight text-ink">
                   {entry.title}
                 </h3>
-                <p className="mt-1.5 max-w-2xl text-sm leading-snug text-ink-muted">
+                <p className="mt-1.5 max-w-2xl text-base leading-snug text-ink-muted">
                   {entry.situation}
                 </p>
                 <p className="tabular mt-2.5 font-mono text-[11px] uppercase tracking-wider text-ink-dim">
@@ -324,7 +324,7 @@ export default function Home() {
           <h2 className="font-display text-lg font-semibold text-ink">
             Something missing?
           </h2>
-          <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+          <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-ink-muted">
             If you run something that belongs here — especially if it does a job people
             currently pay for — send it over. Every suggestion is read by a person, and most
             are not published.

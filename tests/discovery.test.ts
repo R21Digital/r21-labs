@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { getPublishedEntries, readEntriesUnguarded } from "@/lib/content";
+import { getPublishedNotes, notePath } from "@/lib/notes";
 import { SITE_URL, canonicalPath } from "@/lib/site";
 
 /**
@@ -112,7 +113,9 @@ describe("discovery layer — build output", () => {
       SITE_URL,
       `${SITE_URL}/suggest`,
       `${SITE_URL}/contact`,
+      `${SITE_URL}/blog`,
       ...getPublishedEntries().map((entry) => `${SITE_URL}${canonicalPath(entry)}`),
+      ...getPublishedNotes().map((note) => `${SITE_URL}${notePath(note)}`),
     ];
 
     expect([...listed].sort()).toEqual([...expected].sort());

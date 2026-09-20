@@ -70,6 +70,7 @@ export default function EntryLogo({ entry, size = 40 }: { entry: Entry; size?: n
       aria-hidden="true"
       width={size}
       height={size}
+      sizes={`${size}px`}
       // A dark product mark on a near-black canvas disappears into it, so every
       // mark sits on its own light tile. Cheaper and more predictable than
       // per-logo background detection, and it is what makes a row of mismatched
