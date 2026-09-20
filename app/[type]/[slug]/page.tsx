@@ -377,7 +377,7 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
           href="/"
           className="inline-flex font-mono text-[11px] uppercase tracking-widest text-ink-dim transition-colors duration-[var(--dur-control)] hover:text-ink"
         >
-          <Wordmark className="text-sm" />
+          <Wordmark className="text-sm" onChapter={isPlaybook} />
         </Link>
         <p
           className={`mt-10 font-mono text-[11px] uppercase tracking-widest ${

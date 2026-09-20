@@ -25,6 +25,12 @@ export interface WordmarkProps {
   word?: string;
   /** Staggered entrance. Off by default — a mark that animates everywhere is noise. */
   animated?: boolean;
+  /**
+   * Set when the mark sits on the light chapter surface. "R" and the word take
+   * the chapter ink; white on #f5f5f5 measured 1.09:1, which left only the "21"
+   * visible. The "21" stays the accent on both surfaces — it is the mark.
+   */
+  onChapter?: boolean;
   className?: string;
 }
 
@@ -34,8 +40,10 @@ const STAGGER_MS = 60;
 export function Wordmark({
   word = "LABS",
   animated = false,
+  onChapter = false,
   className = "",
 }: WordmarkProps) {
+  const ink = onChapter ? "text-chapter-ink" : "text-ink";
   const part = (index: number) =>
     animated
       ? { className: "reveal", style: { animationDelay: `${index * STAGGER_MS}ms` } }
@@ -49,7 +57,7 @@ export function Wordmark({
       role="img"
       aria-label={`R21 ${word}`}
     >
-      <span aria-hidden="true" className="text-ink" {...part(0)}>
+      <span aria-hidden="true" className={ink} {...part(0)}>
         R
       </span>
       <span aria-hidden="true" className="text-accent" {...part(1)}>
@@ -57,7 +65,7 @@ export function Wordmark({
       </span>
       <span
         aria-hidden="true"
-        className="ml-[0.35em] font-semibold tracking-[0.18em] text-ink"
+        className={`ml-[0.35em] font-semibold tracking-[0.18em] ${ink}`}
         {...part(2)}
       >
         {word}

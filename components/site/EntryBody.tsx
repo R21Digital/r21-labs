@@ -36,6 +36,10 @@ export default function EntryBody({
   const strong = isChapter ? "text-chapter-ink" : "text-ink";
   const rule = isChapter ? "border-black/10" : "border-[var(--hairline)]";
   const chip = isChapter ? "bg-black/[0.04]" : "bg-surface";
+  // Accent text on the chapter surface measured 3.51:1. The palette is locked,
+  // so on light the link takes the chapter ink and keeps the accent as its
+  // underline; on the canvas accent text is 5.14:1 and stays as it was.
+  const link = isChapter ? "text-chapter-ink decoration-accent" : "text-accent";
 
   return (
     <div className={`mt-8 leading-relaxed ${ink}`}>
@@ -69,7 +73,7 @@ export default function EntryBody({
             return (
               <a
                 href={href}
-                className="text-accent underline underline-offset-4"
+                className={`${link} underline underline-offset-4`}
                 {...(external
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
