@@ -46,7 +46,13 @@ function walk(dir: string): string[] {
  * inviting. Calling the choke point "enforced" was wrong — it was a convention.
  */
 export function readEntriesUnguarded(dir: string = CONTENT_DIR): Entry[] {
-  const files = walk(dir);
+  // Only the catalog type folders. `content/notes/` is first-party writing and
+  // has its own reader — walking it here would either fail shape validation or
+  // let a note skip the attribution guard.
+  const files =
+    dir === CONTENT_DIR
+      ? Object.values(DIR_FOR_TYPE).flatMap((sub) => walk(path.join(dir, sub)))
+      : walk(dir);
   const entries: Entry[] = [];
   const errors: string[] = [];
 

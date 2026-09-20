@@ -41,6 +41,16 @@ describe("publishing boundary", () => {
       "These bypass every publishing guard. Use getPublishedEntries().",
     ).toEqual([]);
   });
+
+  it("lets nothing under app/ import the unguarded notes reader", () => {
+    const offenders = files.filter((file) =>
+      fs.readFileSync(file, "utf8").includes("readNotesUnguarded"),
+    );
+    expect(
+      offenders.map((f) => path.relative(process.cwd(), f)),
+      "These bypass the notes publishing filter. Use getPublishedNotes().",
+    ).toEqual([]);
+  });
 });
 
 /**

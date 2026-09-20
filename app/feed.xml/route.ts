@@ -1,4 +1,5 @@
 import { getPublishedEntries } from "@/lib/content";
+import { getPublishedNotes, notePath } from "@/lib/notes";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -32,30 +33,44 @@ function escapeXml(value: string): string {
 
 export function GET(): Response {
   const entries = getPublishedEntries();
+  const notes = getPublishedNotes();
 
-  // Newest verification first. A feed ordered by filesystem walk order is
-  // arbitrary, and readers show it in document order.
-  const ordered = [...entries].sort((a, b) =>
-    (b.verifiedOn ?? "").localeCompare(a.verifiedOn ?? ""),
+  // Newest verification / publish date first. A feed ordered by filesystem
+  // walk order is arbitrary, and readers show it in document order.
+  const catalogItems = entries.map((entry) => ({
+    title: entry.title,
+    url: canonicalUrl(entry),
+    date: entry.verifiedOn,
+    category: entry.type,
+    description: entryDescription(entry),
+  }));
+  const noteItems = notes.map((note) => ({
+    title: note.title,
+    url: `${SITE_URL}${notePath(note)}`,
+    date: note.publishedOn,
+    category: "note",
+    description: note.summary,
+  }));
+  const ordered = [...catalogItems, ...noteItems].sort((a, b) =>
+    (b.date ?? "").localeCompare(a.date ?? ""),
   );
 
   const items = ordered
-    .map((entry) => {
-      const url = canonicalUrl(entry);
-      const date = entry.verifiedOn
-        ? new Date(`${entry.verifiedOn}T00:00:00Z`).toUTCString()
+    .map((item) => {
+      const date = item.date
+        ? new Date(`${item.date}T00:00:00Z`).toUTCString()
         : undefined;
 
       return [
         "    <item>",
-        `      <title>${escapeXml(entry.title)}</title>`,
-        `      <link>${escapeXml(url)}</link>`,
+        `      <title>${escapeXml(item.title)}</title>`,
+        `      <link>${escapeXml(item.url)}</link>`,
         // A feed reader dedupes on guid. It must be stable across rebuilds,
         // so it is the canonical URL and never anything build-time.
-        `      <guid isPermaLink="true">${escapeXml(url)}</guid>`,
-        `      <category>${escapeXml(entry.type)}</category>`,
+        `      <guid isPermaLink="true">${escapeXml(item.url)}</guid>`,
+        `      <category>${escapeXml(item.category)}</category>`,
         date ? `      <pubDate>${date}</pubDate>` : null,
-        `      <description>${escapeXml(entryDescription(entry))}</description>`,
+        `      <description>${escapeXml(item.description)}</description>`,
         "    </item>",
       ]
         .filter(Boolean)

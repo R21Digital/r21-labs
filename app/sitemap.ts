@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getPublishedEntries } from "@/lib/content";
+import { getPublishedNotes, notePath } from "@/lib/notes";
 import { SITE_URL, canonicalPath } from "@/lib/site";
 
 /**
@@ -25,10 +26,11 @@ import { SITE_URL, canonicalPath } from "@/lib/site";
  * accident. `tests/discovery.test.ts` states the same two paths independently —
  * if the test imported this constant it would assert nothing.
  */
-const STATIC_PAGES = ["/suggest", "/contact"] as const;
+const STATIC_PAGES = ["/suggest", "/contact", "/blog"] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries = getPublishedEntries();
+  const notes = getPublishedNotes();
 
   const newest = entries
     .map((entry) => entry.verifiedOn)
@@ -55,6 +57,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
         : undefined,
       changeFrequency: "monthly" as const,
       priority: entry.type === "playbook" ? 0.8 : 0.7,
+    })),
+    ...notes.map((note) => ({
+      url: `${SITE_URL}${notePath(note)}`,
+      lastModified: new Date(`${note.publishedOn}T00:00:00Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
   ];
 }
