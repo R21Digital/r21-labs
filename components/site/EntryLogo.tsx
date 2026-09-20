@@ -39,7 +39,7 @@ export default function EntryLogo({ entry, size = 40 }: { entry: Entry; size?: n
       <span
         aria-hidden="true"
         style={{ width: size, height: size }}
-        className={`${tile} border-[var(--hairline-strong)] bg-surface font-display font-black leading-none tracking-tight`}
+        className={`${tile} self-start border-[var(--hairline-strong)] bg-surface font-display font-black leading-none tracking-tight`}
       >
         <span style={{ fontSize: Math.round(size * 0.34) }}>
           <span className="text-ink">R</span>
@@ -56,7 +56,7 @@ export default function EntryLogo({ entry, size = 40 }: { entry: Entry; size?: n
       <span
         aria-hidden="true"
         style={{ width: size, height: size }}
-        className={`${tile} border-[var(--hairline-strong)] bg-surface font-display font-bold text-ink-dim`}
+        className={`${tile} self-start border-[var(--hairline-strong)] bg-surface font-display font-bold text-ink-dim`}
       >
         <span style={{ fontSize: Math.round(size * 0.36) }}>{monogram(entry.title)}</span>
       </span>
@@ -74,9 +74,10 @@ export default function EntryLogo({ entry, size = 40 }: { entry: Entry; size?: n
       // mark sits on its own light tile. Cheaper and more predictable than
       // per-logo background detection, and it is what makes a row of mismatched
       // avatars look like one set.
-      className={`shrink-0 bg-white/95 object-contain p-[3px] ${
+      className={`aspect-square shrink-0 self-start bg-white/95 object-contain p-[3px] ${
         logo.shape === "circle" ? "rounded-full" : "rounded-[var(--radius-control)]"
       }`}
+      style={{ width: size, height: size }}
     />
   );
 }

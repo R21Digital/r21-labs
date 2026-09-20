@@ -42,6 +42,7 @@ export type Field = {
   placeholder?: string;
   /** Shown under the input. Use for the thing the label cannot say briefly. */
   hint?: string;
+  autoComplete?: string;
 };
 
 export type SubmitFormProps = {
@@ -58,9 +59,17 @@ export type SubmitFormProps = {
 type State = "idle" | "sending" | "sent";
 
 const controlClass =
-  "w-full rounded-[var(--radius-control)] border border-[var(--hairline-strong)] bg-canvas/60 px-3 py-2 text-sm text-ink " +
+  "min-h-11 w-full rounded-[var(--radius-control)] border border-[var(--hairline-control)] bg-canvas/60 px-3 py-2 text-base text-ink " +
   "placeholder:text-ink-dim focus:border-accent focus:outline-none focus-visible:outline focus-visible:outline-2 " +
   "focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60";
+
+function autoCompleteFor(field: Field): string | undefined {
+  if (field.autoComplete) return field.autoComplete;
+  if (field.type === "email" || field.name === "email") return "email";
+  if (field.name === "name") return "name";
+  if (field.name === "organization") return "organization";
+  return undefined;
+}
 
 export default function SubmitForm({
   kind,
@@ -203,6 +212,7 @@ export default function SubmitForm({
                 type={field.type ?? "text"}
                 required={field.required}
                 placeholder={field.placeholder}
+                autoComplete={autoCompleteFor(field)}
                 aria-describedby={hintId}
                 disabled={state === "sending"}
                 className={`${controlClass} ${inline ? "" : "mt-2"}`}
@@ -233,7 +243,7 @@ export default function SubmitForm({
       <button
         type="submit"
         disabled={state === "sending"}
-        className="tabular inline-flex shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-accent bg-accent/[0.12] px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-ink transition-colors duration-[var(--dur-control)] hover:bg-accent/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60"
+        className="tabular inline-flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-accent bg-accent/[0.12] px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-ink transition-colors duration-[var(--dur-control)] hover:bg-accent/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60"
       >
         {state === "sending" ? "Sending…" : submitLabel}
       </button>
