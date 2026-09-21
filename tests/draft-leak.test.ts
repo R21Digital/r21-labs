@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { readEntriesUnguarded } from "@/lib/content";
+import { readNotesUnguarded } from "@/lib/notes";
 
 /**
  * Spec §10 — the draft-leak test.
@@ -110,6 +111,27 @@ describe("draft leak (spec §10)", () => {
           expect(
             contents.includes(marker),
             `Draft "${draft.title}" leaked its ${field} ("${marker}") into ${path.relative(process.cwd(), file)}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("ships no draft note in any rendered file", () => {
+    const notes = readNotesUnguarded();
+    const drafts = notes.filter((note) => note.status !== "published");
+    if (drafts.length === 0) return;
+
+    for (const draft of drafts) {
+      const markers = [draft.title, draft.slug, draft.summary].filter(
+        (value) => value && value.length >= 8,
+      );
+      for (const file of files) {
+        const contents = fs.readFileSync(file, "utf8");
+        for (const marker of markers) {
+          expect(
+            contents.includes(marker),
+            `Draft note "${draft.title}" leaked "${marker}" into ${path.relative(process.cwd(), file)}`,
           ).toBe(false);
         }
       }
