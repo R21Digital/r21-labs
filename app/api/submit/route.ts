@@ -1,8 +1,10 @@
 import { NextResponse, after } from "next/server";
 
 import { isDeployed, missingEmailEnv, sendNotification } from "@/lib/email";
-import { parseSubmission, renderNotification } from "@/lib/forms";
+import { parseSubmission, renderNotification, type Submission } from "@/lib/forms";
+import { card, emailField, field } from "@/lib/lead-card";
 import { sendVisitorReply } from "@/lib/visitor-reply";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 /**
  * The one server route on an otherwise fully static site.
@@ -65,6 +67,77 @@ function redirectTo(request: Request, status: "sent" | "error"): NextResponse {
   return NextResponse.redirect(base, { status: 303 });
 }
 
+/**
+ * The card for the "Leads - R21 Digital" WhatsApp group.
+ *
+ * The builder is the fleet's shared `lib/lead-card.ts`; the titles and labels are this
+ * site's, in English. No spam verdict is passed: this site's spam handling is the honeypot
+ * in `parseSubmission`, which drops before anything is sent, so there is nothing to flag.
+ * Links go through `emailField` rather than `field`, which would strip the underscores out
+ * of a real URL.
+ */
+function whatsappCard(submission: Submission): string {
+  if (submission.kind === "subscribe") {
+    return card({
+      lang: "en",
+      title: "📬 *New subscriber, R21 Labs*",
+      rows: [["Email", emailField(submission.email)]],
+    });
+  }
+  if (submission.kind === "suggestion") {
+    return card({
+      lang: "en",
+      title: "🛠️ *Tool suggestion, R21 Labs*",
+      rows: [
+        ["Tool", field(submission.toolName)],
+        ["Link", emailField(submission.toolUrl)],
+        ["Replaces", field(submission.replaces)],
+        ["Email", emailField(submission.email)],
+      ],
+      message: submission.why,
+    });
+  }
+  return card({
+    lang: "en",
+    title: "✉️ *New enquiry, R21 Labs*",
+    rows: [
+      ["Name", field(submission.name)],
+      ["Email", emailField(submission.email)],
+      ["Organization", field(submission.organization)],
+    ],
+    message: submission.message,
+  });
+}
+
+/**
+ * True when the card keeps every character the visitor typed.
+ *
+ * The shared lead card cuts the message at 2,000 characters and each one-line field at 120
+ * (its defaults), while `parseSubmission` accepts up to 4,000 and 500. The email carries the
+ * whole text; the card may not. So when email failed, a card that was cut is not a capture,
+ * because nothing complete was delivered. `tests/submit-route.test.ts` pins these two numbers
+ * against the real card, so a change to the shared lib fails a test instead of drifting.
+ */
+const CARD_MESSAGE_MAX = 2000;
+const CARD_FIELD_MAX = 120;
+
+function cardKeepsEverything(submission: Submission): boolean {
+  const fits = (value: string, max: number) => Array.from(value).length <= max;
+  if (submission.kind === "subscribe") return fits(submission.email, CARD_FIELD_MAX);
+  if (submission.kind === "suggestion") {
+    return (
+      [submission.toolName, submission.toolUrl, submission.replaces, submission.email].every((v) =>
+        fits(v, CARD_FIELD_MAX),
+      ) && fits(submission.why, CARD_MESSAGE_MAX)
+    );
+  }
+  return (
+    [submission.name, submission.email, submission.organization].every((v) =>
+      fits(v, CARD_FIELD_MAX),
+    ) && fits(submission.message, CARD_MESSAGE_MAX)
+  );
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   let wasForm = false;
@@ -87,16 +160,55 @@ export async function POST(request: Request) {
   }
 
   const mail = renderNotification(parsed.submission);
-  const sent = await sendNotification(mail);
 
-  if (!sent.ok) {
+  // Email and the "Leads - R21 Digital" WhatsApp group at once: neither waits on, or is
+  // lost to, the other, and a throw from one cannot skip the other.
+  const [emailResult, whatsappResult] = await Promise.allSettled([
+    sendNotification(mail),
+    sendWhatsApp(whatsappCard(parsed.submission)),
+  ]);
+  const sent = emailResult.status === "fulfilled" ? emailResult.value : null;
+  const emailOk = sent?.ok === true;
+  const whatsappOk = whatsappResult.status === "fulfilled" && whatsappResult.value.ok;
+
+  if (!emailOk) {
+    console.error("[r21-labs] notification email not delivered", {
+      kind: parsed.submission.kind,
+      error:
+        emailResult.status === "rejected"
+          ? "transport threw"
+          : sent && !sent.ok
+            ? sent.error
+            : "unknown",
+    });
+  }
+  if (!whatsappOk) {
+    // A category only. The helper's own `error` text is deliberately not logged: a bad
+    // GREENAPI_HOST makes fetch reject with the whole request URL, and that URL contains the
+    // API token. The helper logs the green-api status itself.
+    console.error("[r21-labs] WhatsApp alert not delivered", {
+      kind: parsed.submission.kind,
+      reason:
+        whatsappResult.status === "rejected"
+          ? "helper threw"
+          : whatsappResult.value.skipped
+            ? "not configured"
+            : "send failed",
+    });
+  }
+
+  // Captured if EITHER channel reached us. A WhatsApp card that cut the visitor's text is
+  // not a capture on its own, because then the email was the only complete copy.
+  const whatsappComplete = whatsappOk && cardKeepsEverything(parsed.submission);
+  if (whatsappOk && !whatsappComplete && !emailOk) {
+    console.error("[r21-labs] WhatsApp card was truncated and email failed", {
+      kind: parsed.submission.kind,
+    });
+  }
+  if (!emailOk && !whatsappComplete) {
     // 🔴 Do NOT answer 200 here. The whole point of the guard in lib/email.ts
     // is that an unconfigured or failing sender is visible. R21 has shipped
     // forms that thanked people for submissions nobody ever received.
-    console.error("[r21-labs] submission not delivered", {
-      kind: parsed.submission.kind,
-      error: sent.error,
-    });
     if (wasForm) return redirectTo(request, "error");
     return NextResponse.json(
       {
@@ -109,7 +221,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (sent.transport === "log" && isDeployed()) {
+  if (sent?.ok && sent.transport === "log" && isDeployed()) {
     // Unreachable by construction — `sendNotification` refuses the log
     // transport on any deployment, preview included. Asserted anyway, because
     // the failure it guards against is silent by nature and this is the last
@@ -119,9 +231,9 @@ export async function POST(request: Request) {
     });
   }
 
-  // The visitor's own reply. Scheduled AFTER the notification to R21 has succeeded and
-  // after the response is decided, so nothing here can affect what the submitter is
-  // told or whether R21 receives the lead. sendVisitorReply never throws out.
+  // The visitor's own reply. Scheduled once the lead is captured and after the response is
+  // decided, so nothing here can affect what the submitter is told or whether R21 receives
+  // the lead. sendVisitorReply never throws out.
   after(async () => {
     await sendVisitorReply(parsed.submission);
   });
