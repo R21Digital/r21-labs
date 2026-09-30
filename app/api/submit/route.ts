@@ -1,8 +1,10 @@
 import { NextResponse, after } from "next/server";
 
 import { isDeployed, missingEmailEnv, sendNotification } from "@/lib/email";
-import { parseSubmission, renderNotification } from "@/lib/forms";
+import { parseSubmission, renderNotification, type Submission } from "@/lib/forms";
+import { card, emailField, field } from "@/lib/lead-card";
 import { sendVisitorReply } from "@/lib/visitor-reply";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 /**
  * The one server route on an otherwise fully static site.
@@ -65,6 +67,48 @@ function redirectTo(request: Request, status: "sent" | "error"): NextResponse {
   return NextResponse.redirect(base, { status: 303 });
 }
 
+/**
+ * The card for the "Leads - R21 Digital" WhatsApp group.
+ *
+ * The builder is the fleet's shared `lib/lead-card.ts`; the titles and labels are this
+ * site's, in English. No spam verdict is passed: this site's spam handling is the honeypot
+ * in `parseSubmission`, which drops before anything is sent, so there is nothing to flag.
+ * Links go through `emailField` rather than `field`, which would strip the underscores out
+ * of a real URL.
+ */
+function whatsappCard(submission: Submission): string {
+  if (submission.kind === "subscribe") {
+    return card({
+      lang: "en",
+      title: "📬 *New subscriber, R21 Labs*",
+      rows: [["Email", emailField(submission.email)]],
+    });
+  }
+  if (submission.kind === "suggestion") {
+    return card({
+      lang: "en",
+      title: "🛠️ *Tool suggestion, R21 Labs*",
+      rows: [
+        ["Tool", field(submission.toolName)],
+        ["Link", emailField(submission.toolUrl)],
+        ["Replaces", field(submission.replaces)],
+        ["Email", emailField(submission.email)],
+      ],
+      message: submission.why,
+    });
+  }
+  return card({
+    lang: "en",
+    title: "✉️ *New enquiry, R21 Labs*",
+    rows: [
+      ["Name", field(submission.name)],
+      ["Email", emailField(submission.email)],
+      ["Organization", field(submission.organization)],
+    ],
+    message: submission.message,
+  });
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   let wasForm = false;
@@ -87,16 +131,44 @@ export async function POST(request: Request) {
   }
 
   const mail = renderNotification(parsed.submission);
-  const sent = await sendNotification(mail);
 
-  if (!sent.ok) {
+  // Email and the "Leads - R21 Digital" WhatsApp group at once: neither waits on, or is
+  // lost to, the other, and a throw from one cannot skip the other.
+  const [emailResult, whatsappResult] = await Promise.allSettled([
+    sendNotification(mail),
+    sendWhatsApp(whatsappCard(parsed.submission)),
+  ]);
+  const sent = emailResult.status === "fulfilled" ? emailResult.value : null;
+  const emailOk = sent?.ok === true;
+  const whatsappOk = whatsappResult.status === "fulfilled" && whatsappResult.value.ok;
+
+  if (!emailOk) {
+    console.error("[r21-labs] notification email not delivered", {
+      kind: parsed.submission.kind,
+      error:
+        emailResult.status === "rejected"
+          ? "transport threw"
+          : sent && !sent.ok
+            ? sent.error
+            : "unknown",
+    });
+  }
+  if (!whatsappOk) {
+    // The helper already logs why; this ties the failure to the kind of lead.
+    console.error("[r21-labs] WhatsApp alert not delivered", {
+      kind: parsed.submission.kind,
+      error:
+        whatsappResult.status === "fulfilled"
+          ? (whatsappResult.value.error ?? (whatsappResult.value.skipped ? "not configured" : "unknown"))
+          : "helper threw",
+    });
+  }
+
+  // Captured if EITHER channel reached us.
+  if (!emailOk && !whatsappOk) {
     // 🔴 Do NOT answer 200 here. The whole point of the guard in lib/email.ts
     // is that an unconfigured or failing sender is visible. R21 has shipped
     // forms that thanked people for submissions nobody ever received.
-    console.error("[r21-labs] submission not delivered", {
-      kind: parsed.submission.kind,
-      error: sent.error,
-    });
     if (wasForm) return redirectTo(request, "error");
     return NextResponse.json(
       {
@@ -109,7 +181,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (sent.transport === "log" && isDeployed()) {
+  if (sent?.ok && sent.transport === "log" && isDeployed()) {
     // Unreachable by construction — `sendNotification` refuses the log
     // transport on any deployment, preview included. Asserted anyway, because
     // the failure it guards against is silent by nature and this is the last
@@ -119,9 +191,9 @@ export async function POST(request: Request) {
     });
   }
 
-  // The visitor's own reply. Scheduled AFTER the notification to R21 has succeeded and
-  // after the response is decided, so nothing here can affect what the submitter is
-  // told or whether R21 receives the lead. sendVisitorReply never throws out.
+  // The visitor's own reply. Scheduled once the lead is captured and after the response is
+  // decided, so nothing here can affect what the submitter is told or whether R21 receives
+  // the lead. sendVisitorReply never throws out.
   after(async () => {
     await sendVisitorReply(parsed.submission);
   });

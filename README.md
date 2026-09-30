@@ -47,6 +47,7 @@ it, and every page renders.
 | `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY_ID`, `AWS_SES_SECRET_ACCESS_KEY` | Sending form submissions via SES | Forms log instead of sending — **in dev and preview only**, see below |
 | `ALERT_FROM` | The SES-verified sender identity, e.g. `no-reply@r21digital.com` | as above |
 | `ALERT_TO` | Where submissions land | as above |
+| `GREENAPI_ID_INSTANCE`, `GREENAPI_API_TOKEN`, `GREENAPI_CHAT_ID` | The WhatsApp lead alert: every valid submission also posts a card to the "Leads - R21 Digital" group (`GREENAPI_CHAT_ID`, ends in `@g.us`). `GREENAPI_HOST` is optional. | The alert is skipped and logged; email still sends. Never point `GREENAPI_CHAT_ID` at the sender's own number, or alerts land in "Message yourself" and nobody sees them. |
 
 The names match the rest of R21's site fleet rather than the AWS SDK's own defaults, so the ops
 sweeps that grep for `AWS_SES_*` see this project too. The credentials themselves are R21 Labs' own
@@ -78,6 +79,13 @@ in prod, fall back to log when env is missing — is exactly how R21 shipped thr
 contact forms captured nothing while thanking every visitor. The fallback is a development
 convenience and `lib/email.ts` refuses it when `VERCEL_ENV=production`. That refusal has its own
 test, and it is the one in this repo most worth keeping green.
+
+**A lead counts as captured if email OR WhatsApp delivers.** Each valid submission is sent by SES and pushed to the
+WhatsApp group at the same time (`lib/whatsapp.ts`, `lib/lead-card.ts` and `lib/spam.ts` are the fleet's shared
+library, copied byte-for-byte from `sign-industry-corp-site` @ `8a8a741`; do not edit them here). Only when both
+fail does the route answer 503. A missing WhatsApp env is logged and the form keeps working on email alone, so
+check the group after a deploy rather than assuming it is wired. `lib/spam.ts` is present only because the card
+builder imports its type; the route does not call `checkSpam`, and the honeypot below is still the only filter.
 
 **The forms work without JavaScript.** Not as an aspiration — the route reads
 `application/x-www-form-urlencoded` as well as JSON and answers a native post with a 303 back to the
