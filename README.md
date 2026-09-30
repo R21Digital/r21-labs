@@ -83,7 +83,8 @@ test, and it is the one in this repo most worth keeping green.
 **A lead counts as captured if email OR WhatsApp delivers.** Each valid submission is sent by SES and pushed to the
 WhatsApp group at the same time (`lib/whatsapp.ts`, `lib/lead-card.ts` and `lib/spam.ts` are the fleet's shared
 library, copied byte-for-byte from `sign-industry-corp-site` @ `8a8a741`; do not edit them here). Only when both
-fail does the route answer 503. A missing WhatsApp env is logged and the form keeps working on email alone, so
+fail does the route answer 503. The card cuts text at 2,000 characters (120 for one-line fields), so when email is
+down a longer submission also gets a 503 rather than a half-copy. A missing WhatsApp env is logged and the form keeps working on email alone, so
 check the group after a deploy rather than assuming it is wired. `lib/spam.ts` is present only because the card
 builder imports its type; the route does not call `checkSpam`, and the honeypot below is still the only filter.
 

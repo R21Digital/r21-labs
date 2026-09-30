@@ -109,6 +109,35 @@ function whatsappCard(submission: Submission): string {
   });
 }
 
+/**
+ * True when the card keeps every character the visitor typed.
+ *
+ * The shared lead card cuts the message at 2,000 characters and each one-line field at 120
+ * (its defaults), while `parseSubmission` accepts up to 4,000 and 500. The email carries the
+ * whole text; the card may not. So when email failed, a card that was cut is not a capture,
+ * because nothing complete was delivered. `tests/submit-route.test.ts` pins these two numbers
+ * against the real card, so a change to the shared lib fails a test instead of drifting.
+ */
+const CARD_MESSAGE_MAX = 2000;
+const CARD_FIELD_MAX = 120;
+
+function cardKeepsEverything(submission: Submission): boolean {
+  const fits = (value: string, max: number) => Array.from(value).length <= max;
+  if (submission.kind === "subscribe") return fits(submission.email, CARD_FIELD_MAX);
+  if (submission.kind === "suggestion") {
+    return (
+      [submission.toolName, submission.toolUrl, submission.replaces, submission.email].every((v) =>
+        fits(v, CARD_FIELD_MAX),
+      ) && fits(submission.why, CARD_MESSAGE_MAX)
+    );
+  }
+  return (
+    [submission.name, submission.email, submission.organization].every((v) =>
+      fits(v, CARD_FIELD_MAX),
+    ) && fits(submission.message, CARD_MESSAGE_MAX)
+  );
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   let wasForm = false;
@@ -154,18 +183,29 @@ export async function POST(request: Request) {
     });
   }
   if (!whatsappOk) {
-    // The helper already logs why; this ties the failure to the kind of lead.
+    // A category only. The helper's own `error` text is deliberately not logged: a bad
+    // GREENAPI_HOST makes fetch reject with the whole request URL, and that URL contains the
+    // API token. The helper logs the green-api status itself.
     console.error("[r21-labs] WhatsApp alert not delivered", {
       kind: parsed.submission.kind,
-      error:
-        whatsappResult.status === "fulfilled"
-          ? (whatsappResult.value.error ?? (whatsappResult.value.skipped ? "not configured" : "unknown"))
-          : "helper threw",
+      reason:
+        whatsappResult.status === "rejected"
+          ? "helper threw"
+          : whatsappResult.value.skipped
+            ? "not configured"
+            : "send failed",
     });
   }
 
-  // Captured if EITHER channel reached us.
-  if (!emailOk && !whatsappOk) {
+  // Captured if EITHER channel reached us. A WhatsApp card that cut the visitor's text is
+  // not a capture on its own, because then the email was the only complete copy.
+  const whatsappComplete = whatsappOk && cardKeepsEverything(parsed.submission);
+  if (whatsappOk && !whatsappComplete && !emailOk) {
+    console.error("[r21-labs] WhatsApp card was truncated and email failed", {
+      kind: parsed.submission.kind,
+    });
+  }
+  if (!emailOk && !whatsappComplete) {
     // 🔴 Do NOT answer 200 here. The whole point of the guard in lib/email.ts
     // is that an unconfigured or failing sender is visible. R21 has shipped
     // forms that thanked people for submissions nobody ever received.

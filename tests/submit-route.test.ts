@@ -28,6 +28,7 @@ vi.mock("@/lib/visitor-reply", () => ({ sendVisitorReply }));
 
 import { POST } from "@/app/api/submit/route";
 import { __setTransportForTests, type Outbound } from "@/lib/email";
+import { card, emailField, field } from "@/lib/lead-card";
 
 const contact = {
   kind: "contact",
@@ -192,15 +193,29 @@ describe("captured = email OR WhatsApp", () => {
     expect(afterQueue).toHaveLength(0);
   });
 
-  it("logs a failed channel by kind and error, not by visitor content", async () => {
+  it("logs a failed channel by kind, not by visitor content", async () => {
     emailFails();
     sendWhatsApp.mockResolvedValue({ ok: false, error: "green-api 466" });
     await POST(post(contact));
     const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
     expect(logged).toContain("contact");
-    expect(logged).toContain("green-api 466");
+    expect(logged).toContain("SES down");
     expect(logged).not.toContain("ana@example.com");
     expect(logged).not.toContain("Rivera");
+  });
+
+  it("never logs the WhatsApp helper's error text, which can carry the token-bearing URL", async () => {
+    // A malformed GREENAPI_HOST makes fetch reject with the full request URL in its message,
+    // and the URL contains the API token. The helper hands that message back in `error`.
+    emailSucceeds();
+    sendWhatsApp.mockResolvedValue({
+      ok: false,
+      error: "Failed to parse URL from bad-host/waInstance1/SECRET-TOKEN-VALUE/sendMessage",
+    });
+    await POST(post(contact));
+    const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
+    expect(logged).toContain("WhatsApp alert not delivered");
+    expect(logged).not.toContain("SECRET-TOKEN-VALUE");
   });
 
   it("redirects a no-JS post to the error state only when both channels fail", async () => {
@@ -214,6 +229,61 @@ describe("captured = email OR WhatsApp", () => {
     const saved = await POST(post(contact, { form: true }));
     expect(saved.status).toBe(303);
     expect(new URL(saved.headers.get("location")!).searchParams.get("submitted")).toBe("sent");
+  });
+});
+
+describe("a WhatsApp-only capture must not lose the lead text", () => {
+  // The shared lead card cuts a message at 2,000 characters and every one-line field at 120,
+  // while validation accepts 4,000 and up to 500. When email is also down, the card is the
+  // only copy, so a submission the card would cut is not treated as captured.
+  const long = (n: number) => "x".repeat(n);
+
+  it("pins the card limits the route relies on", () => {
+    expect(card({ title: "t", rows: [], message: long(2000) })).toContain(long(2000));
+    expect(card({ title: "t", rows: [], message: long(2001) })).not.toContain(long(2001));
+    expect(field(long(120))).toHaveLength(120);
+    expect(field(long(121))).toHaveLength(120);
+    expect(emailField(long(120))).toHaveLength(120);
+    expect(emailField(long(121))).toHaveLength(120);
+  });
+
+  it("answers 503 when email is down and the message is longer than the card keeps", async () => {
+    emailFails();
+    const res = await POST(post({ ...contact, message: long(2001) }));
+    expect(res.status).toBe(503);
+    expect(afterQueue).toHaveLength(0);
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain("truncated");
+  });
+
+  it("answers 503 when email is down and the address is longer than the card keeps", async () => {
+    emailFails();
+    const res = await POST(post({ ...contact, email: `${long(130)}@example.com` }));
+    expect(res.status).toBe(503);
+  });
+
+  it("answers 503 when email is down and a suggested link is longer than the card keeps", async () => {
+    emailFails();
+    const res = await POST(
+      post({
+        kind: "suggestion",
+        toolName: "x",
+        toolUrl: `https://example.com/${long(200)}`,
+        why: "Because.",
+      }),
+    );
+    expect(res.status).toBe(503);
+  });
+
+  it("accepts a message of exactly the card limit when email is down", async () => {
+    emailFails();
+    const res = await POST(post({ ...contact, message: long(2000) }));
+    expect(res.status).toBe(200);
+  });
+
+  it("does not care about length when email delivered", async () => {
+    emailSucceeds();
+    const res = await POST(post({ ...contact, message: long(3500) }));
+    expect(res.status).toBe(200);
   });
 });
 
