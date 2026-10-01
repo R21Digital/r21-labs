@@ -76,14 +76,11 @@ function redirectTo(request: Request, status: "sent" | "error"): NextResponse {
  * Links go through `emailField` rather than `field`, which would strip the underscores out
  * of a real URL.
  */
-function whatsappCard(submission: Submission): string {
-  if (submission.kind === "subscribe") {
-    return card({
-      lang: "en",
-      title: "📬 *New subscriber, R21 Labs*",
-      rows: [["Email", emailField(submission.email)]],
-    });
-  }
+/** The kinds that post a card. Newsletter sign-ups stay email-only (Carlos, 2026-09-30):
+ *  the leads group is for enquiries, and a subscriber is not one. */
+type Enquiry = Exclude<Submission, { kind: "subscribe" }>;
+
+function whatsappCard(submission: Enquiry): string {
   if (submission.kind === "suggestion") {
     return card({
       lang: "en",
@@ -121,9 +118,8 @@ function whatsappCard(submission: Submission): string {
 const CARD_MESSAGE_MAX = 2000;
 const CARD_FIELD_MAX = 120;
 
-function cardKeepsEverything(submission: Submission): boolean {
+function cardKeepsEverything(submission: Enquiry): boolean {
   const fits = (value: string, max: number) => Array.from(value).length <= max;
-  if (submission.kind === "subscribe") return fits(submission.email, CARD_FIELD_MAX);
   if (submission.kind === "suggestion") {
     return (
       [submission.toolName, submission.toolUrl, submission.replaces, submission.email].every((v) =>
@@ -159,17 +155,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, errors: parsed.errors }, { status: 400 });
   }
 
-  const mail = renderNotification(parsed.submission);
+  const submission = parsed.submission;
+  const mail = renderNotification(submission);
 
   // Email and the "Leads - R21 Digital" WhatsApp group at once: neither waits on, or is
-  // lost to, the other, and a throw from one cannot skip the other.
+  // lost to, the other, and a throw from one cannot skip the other. A newsletter sign-up
+  // sends no card (Carlos, 2026-09-30), so for it email is the only channel, as before.
+  const wantsCard = submission.kind !== "subscribe";
   const [emailResult, whatsappResult] = await Promise.allSettled([
     sendNotification(mail),
-    sendWhatsApp(whatsappCard(parsed.submission)),
+    submission.kind === "subscribe" ? Promise.resolve(null) : sendWhatsApp(whatsappCard(submission)),
   ]);
   const sent = emailResult.status === "fulfilled" ? emailResult.value : null;
   const emailOk = sent?.ok === true;
-  const whatsappOk = whatsappResult.status === "fulfilled" && whatsappResult.value.ok;
+  const whatsappOk = whatsappResult.status === "fulfilled" && whatsappResult.value?.ok === true;
 
   if (!emailOk) {
     console.error("[r21-labs] notification email not delivered", {
@@ -182,7 +181,7 @@ export async function POST(request: Request) {
             : "unknown",
     });
   }
-  if (!whatsappOk) {
+  if (wantsCard && !whatsappOk) {
     // A category only. The helper's own `error` text is deliberately not logged: a bad
     // GREENAPI_HOST makes fetch reject with the whole request URL, and that URL contains the
     // API token. The helper logs the green-api status itself.
@@ -191,7 +190,7 @@ export async function POST(request: Request) {
       reason:
         whatsappResult.status === "rejected"
           ? "helper threw"
-          : whatsappResult.value.skipped
+          : whatsappResult.value?.skipped
             ? "not configured"
             : "send failed",
     });
@@ -199,7 +198,8 @@ export async function POST(request: Request) {
 
   // Captured if EITHER channel reached us. A WhatsApp card that cut the visitor's text is
   // not a capture on its own, because then the email was the only complete copy.
-  const whatsappComplete = whatsappOk && cardKeepsEverything(parsed.submission);
+  const whatsappComplete =
+    whatsappOk && submission.kind !== "subscribe" && cardKeepsEverything(submission);
   if (whatsappOk && !whatsappComplete && !emailOk) {
     console.error("[r21-labs] WhatsApp card was truncated and email failed", {
       kind: parsed.submission.kind,

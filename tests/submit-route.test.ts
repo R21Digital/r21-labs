@@ -112,9 +112,8 @@ describe("a valid submission", () => {
     expect(emailLines).toEqual(["*Email:* ana@example.com"]);
   });
 
-  it("sends a card for a subscribe and a suggestion too", async () => {
+  it("sends a card for a suggestion", async () => {
     emailSucceeds();
-    await POST(post({ kind: "subscribe", email: "sub@example.com" }));
     await POST(
       post({
         kind: "suggestion",
@@ -123,12 +122,33 @@ describe("a valid submission", () => {
         why: "One binary instead of three grep wrappers.",
       }),
     );
-    expect(sendWhatsApp).toHaveBeenCalledTimes(2);
-    expect(sendWhatsApp.mock.calls[0][0]).toContain("*Email:* sub@example.com");
-    const suggestion = sendWhatsApp.mock.calls[1][0] as string;
+    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+    const suggestion = sendWhatsApp.mock.calls[0][0] as string;
     expect(suggestion).toContain("*Tool:* ripgrep");
     expect(suggestion).toContain("*Link:* https://github.com/BurntSushi/ripgrep");
     expect(suggestion).toContain("> One binary instead of three grep wrappers.");
+  });
+
+  // Carlos, 2026-09-30: the leads group is for enquiries. A newsletter sign-up is not one,
+  // so it stays email-only, as it was before the relay.
+  it("does not post a card for a newsletter sign-up, and still emails it", async () => {
+    const seen = emailSucceeds();
+    const res = await POST(post({ kind: "subscribe", email: "sub@example.com" }));
+    expect(res.status).toBe(200);
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+    expect(seen).toHaveLength(1);
+    // Not a WhatsApp failure, so nothing is logged as one.
+    expect(console.error).not.toHaveBeenCalledWith(
+      "[r21-labs] WhatsApp alert not delivered",
+      expect.anything(),
+    );
+  });
+
+  it("does not claim a sign-up was received when its email fails", async () => {
+    emailFails();
+    const res = await POST(post({ kind: "subscribe", email: "sub@example.com" }));
+    expect(res.status).toBe(503);
+    expect(sendWhatsApp).not.toHaveBeenCalled();
   });
 
   it("keeps the underscores in a suggested link", async () => {
