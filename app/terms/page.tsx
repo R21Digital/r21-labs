@@ -148,7 +148,7 @@ export default function TermsPage() {
 
         <Section heading="Governing law">
           <p>
-            These Terms are governed by the laws of the State of Illinois, USA, without regard to
+            These Terms are governed by the laws of the State of Arizona, USA, without regard to
             conflict-of-law rules.
           </p>
         </Section>
