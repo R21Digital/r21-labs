@@ -1,7 +1,7 @@
 /**
  * green-api WhatsApp helper: instant lead alert to a WhatsApp group.
  *
- * CANONICAL v2 (2026-09-29). Copied BYTE-FOR-BYTE to every client site alongside spam.ts
+ * CANONICAL v2.1 (2026-10-12). Copied BYTE-FOR-BYTE to every client site alongside spam.ts
  * and lead-card.ts; do not edit a copy in place. The contact form pushes each lead to the
  * client's own group the instant it is submitted. The green-api sender number must be a
  * member; the group id goes in GREENAPI_CHAT_ID. Set it to the client's own group, and
@@ -11,6 +11,7 @@
  *   GREENAPI_ID_INSTANCE   green-api instance id
  *   GREENAPI_API_TOKEN     green-api API token
  *   GREENAPI_CHAT_ID       destination chat/group id (ends in @g.us)
+ *   GREENAPI_HOST          optional; defaults to the instance's own host (below)
  *
  * If any are absent the helper LOGS + no-ops (never throws): the form keeps working
  * and the alert email still sends, so a missing WhatsApp config can't break submissions.
@@ -18,7 +19,11 @@
 const ID_INSTANCE = process.env.GREENAPI_ID_INSTANCE;
 const API_TOKEN = process.env.GREENAPI_API_TOKEN;
 const CHAT_ID = process.env.GREENAPI_CHAT_ID;
-const HOST = (process.env.GREENAPI_HOST || "https://api.green-api.com").replace(/\/+$/, "");
+// The instance's own API host, which green-api names after the id's first four digits
+// (7107572715 -> 7107.api.greenapi.com). v2 fell back to the shared api.green-api.com, which stopped
+// answering on 2026-10-11 for ~38 h while every instance host kept working, so no site without
+// GREENAPI_HOST could alert anyone.
+const HOST = (process.env.GREENAPI_HOST || `https://${(ID_INSTANCE ?? "").slice(0, 4)}.api.greenapi.com`).replace(/\/+$/, "");
 
 export async function sendWhatsApp(
   message: string,
