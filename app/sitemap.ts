@@ -26,7 +26,7 @@ import { SITE_URL, canonicalPath } from "@/lib/site";
  * accident. `tests/discovery.test.ts` states the same two paths independently —
  * if the test imported this constant it would assert nothing.
  */
-const STATIC_PAGES = ["/suggest", "/contact", "/blog"] as const;
+const STATIC_PAGES = ["/suggest", "/contact", "/blog", "/terms"] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries = getPublishedEntries();

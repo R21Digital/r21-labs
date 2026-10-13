@@ -85,6 +85,9 @@ export default function Footer() {
             <a href="/feed.xml" className={linkClass}>
               RSS
             </a>
+            <Link href="/terms" className={linkClass}>
+              Terms
+            </Link>
             <a href={ORGANIZATION.url} className={linkClass}>
               r21digital.com
             </a>
