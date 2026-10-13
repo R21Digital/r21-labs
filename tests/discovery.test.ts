@@ -114,6 +114,7 @@ describe("discovery layer — build output", () => {
       `${SITE_URL}/suggest`,
       `${SITE_URL}/contact`,
       `${SITE_URL}/blog`,
+      `${SITE_URL}/terms`,
       ...getPublishedEntries().map((entry) => `${SITE_URL}${canonicalPath(entry)}`),
       ...getPublishedNotes().map((note) => `${SITE_URL}${notePath(note)}`),
     ];
