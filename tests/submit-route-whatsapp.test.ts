@@ -77,7 +77,8 @@ describe("route with the real whatsapp helper", () => {
     expect(fetchStub).toHaveBeenCalledTimes(1);
     const [url, init] = fetchStub.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(
-      "https://api.green-api.com/waInstance1100000000/sendMessage/test-token-not-real",
+      // The instance's own host (lib/whatsapp.ts): the shared api.green-api.com went down 2026-10-11.
+      "https://1100.api.greenapi.com/waInstance1100000000/sendMessage/test-token-not-real",
     );
     const sent = JSON.parse(init.body as string) as { chatId: string; message: string };
     expect(sent.chatId).toBe("120363000000000000@g.us");
