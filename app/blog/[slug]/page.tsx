@@ -4,8 +4,10 @@ import Link from "next/link";
 
 import Wordmark from "@/components/brand/Wordmark";
 import EntryBody from "@/components/site/EntryBody";
+import KeepReading from "@/components/site/KeepReading";
 import { OG_IMAGE, SITE_URL } from "@/lib/site";
-import { getPublishedNotes } from "@/lib/notes";
+import { getPublishedNotes, notePath } from "@/lib/notes";
+import { keepReading } from "@/lib/related";
 
 export const dynamicParams = false;
 
@@ -57,6 +59,7 @@ export default async function NotePage({ params }: PageProps<"/blog/[slug]">) {
         <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">{note.title}</h1>
         <p className="mt-4 text-lg leading-relaxed text-ink-muted">{note.summary}</p>
         <EntryBody body={note.body} isChapter={false} />
+        <KeepReading items={keepReading(notePath(note))} isChapter={false} />
         <p className="mt-12 font-mono text-[11px] uppercase tracking-widest text-ink-dim">
           <Link href="/blog" className="hover:text-ink">
             All notes

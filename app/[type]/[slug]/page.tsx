@@ -9,6 +9,8 @@ import Wordmark from "@/components/brand/Wordmark";
 import EntryBody from "@/components/site/EntryBody";
 import EntryLogo from "@/components/site/EntryLogo";
 import JsonLd from "@/components/site/JsonLd";
+import KeepReading from "@/components/site/KeepReading";
+import { keepReading } from "@/lib/related";
 import {
   ORGANIZATION,
   SITE_NAME,
@@ -418,6 +420,8 @@ export default async function EntryPage({ params }: PageProps<"/[type]/[slug]">)
         <AttributionBlock entry={entry} />
 
         <EntryBody body={entry.body} isChapter={isPlaybook} />
+
+        <KeepReading items={keepReading(canonicalPath(entry))} isChapter={isPlaybook} />
       </div>
 
       <JsonLd data={entrySchema(entry)} />
