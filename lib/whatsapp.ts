@@ -20,7 +20,7 @@ const ID_INSTANCE = process.env.GREENAPI_ID_INSTANCE;
 const API_TOKEN = process.env.GREENAPI_API_TOKEN;
 const CHAT_ID = process.env.GREENAPI_CHAT_ID;
 // The instance's own API host, which green-api names after the id's first four digits
-// (7107572715 -> 7107.api.greenapi.com). v2 fell back to the shared api.green-api.com, which stopped
+// (1101000000 -> 1101.api.greenapi.com). v2 fell back to the shared api.green-api.com, which stopped
 // answering on 2026-10-11 for ~38 h while every instance host kept working, so no site without
 // GREENAPI_HOST could alert anyone.
 const HOST = (process.env.GREENAPI_HOST || `https://${(ID_INSTANCE ?? "").slice(0, 4)}.api.greenapi.com`).replace(/\/+$/, "");
