@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Report } from "../research";
+import { publishedText } from "./research-text";
 
 /**
  * Research guard 3 — no real sampled domain appears in published text.
@@ -48,7 +49,7 @@ export function checkResearchDenylist(
     const denylist = readDenylist(report);
     if (denylist.size === 0) continue;
 
-    for (const prefix of hits(report.body, denylist)) {
+    for (const prefix of hits(publishedText(report), denylist)) {
       errors.push(
         `${report.filePath}: a denylisted domain (hash ${prefix}…) appears in the text; ` +
           `remove it or take it off data/denylist.sha256 on purpose`,

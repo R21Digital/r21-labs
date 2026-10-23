@@ -116,6 +116,11 @@ describe("figureTokens", () => {
     expect(figureTokens("Edición 3, n = 12 y 4,5 %")).toEqual(["n = 12", "4,5 %"]);
   });
 
+  it("reads an emphasised n as one count token", () => {
+    expect(figureTokens("*n* = 412")).toHaveLength(1);
+    expect(figureTokens("Muestra _n_ = 412 y **n** = 5")).toHaveLength(2);
+  });
+
   it("reports a range as one token, with en dash or hyphen", () => {
     expect(figureTokens("Between 1.7–6.3% of sites")).toEqual(["1.7–6.3%"]);
     expect(figureTokens("Between 1.7-6.3% of sites")).toEqual(["1.7-6.3%"]);
@@ -158,6 +163,29 @@ describe("checkResearchNumbers", () => {
     expect(errors[0]).toContain("1.7–6.3%");
   });
 
+  it("fails a figure that appears only in the summary", () => {
+    const errors = checkResearchNumbers(
+      [esReport("limpio", { summary: "Bloqueado: 9,9 % de los sitios en la muestra de prueba." })],
+      () => ({ labels: ["3.3%"] }),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("9,9 %");
+  });
+
+  it("fails an italic n count that is not in stats", () => {
+    const errors = checkResearchNumbers([esReport("Muestra *n* = 999 sitios")], () => ({
+      labels: ["n = 412"],
+    }));
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("999");
+  });
+
+  it("accepts an emphasised n that matches a label", () => {
+    const stats = () => ({ labels: ["n = 412"] });
+    expect(checkResearchNumbers([esReport("Muestra _n_ = 412 sitios")], stats)).toEqual([]);
+    expect(checkResearchNumbers([esReport("Muestra **n** = 412 sitios")], stats)).toEqual([]);
+  });
+
   it("fails a measurement that has no stats file", () => {
     const errors = checkResearchNumbers([esReport("Solo 3,3 % bloquean")], () => null);
     expect(errors.join()).toMatch(/stats\.json/);
@@ -182,6 +210,25 @@ describe("checkResearchDenylist", () => {
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(/denylist/);
+  });
+
+  it("checks the title as published text", () => {
+    const errors = checkResearchDenylist(
+      [esReport("limpio", { title: "Qué pasa en Example.org" })],
+      () => new Set([EXAMPLE_ORG_HASH]),
+      () => "",
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/denylist/);
+  });
+
+  it("checks the summary as published text", () => {
+    const errors = checkResearchDenylist(
+      [esReport("limpio", { summary: "Un resumen que nombra a https://example.org por error." })],
+      () => new Set([EXAMPLE_ORG_HASH]),
+      () => "",
+    );
+    expect(errors).toHaveLength(1);
   });
 
   it("checks the data text (METHOD.md, results.csv) as well", () => {

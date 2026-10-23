@@ -1,4 +1,5 @@
 import type { Report } from "../research";
+import { publishedText } from "./research-text";
 
 /**
  * Research guard 2 — every figure in the prose is backed by the data.
@@ -16,7 +17,8 @@ const PERCENT = String.raw`\d+(?:[.,]\d+)?\s?%`;
 // A range is ONE token. It is tried first so its trailing percent is not
 // reported a second time.
 const RANGE = String.raw`\d+(?:[.,]\d+)?\s?%?\s?[–-]\s?\d+(?:[.,]\d+)?\s?%`;
-const COUNT = String.raw`(?<![A-Za-z])[nN]\s*=\s*\d+(?:[.,]\d{3})*`;
+// `*n*`, `_n_` and `**n**` are the same count in prose; emphasis must not hide it.
+const COUNT = String.raw`(?<![A-Za-z])(?:\*\*|\*|__|_)?[nN](?:\*\*|\*|__|_)?\s*=\s*\d+(?:[.,]\d{3})*`;
 const FIGURE = new RegExp(`(?<![\\d.,])(?:${RANGE}|${PERCENT})|${COUNT}`, "g");
 
 const ISO_DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
@@ -29,7 +31,10 @@ export function figureTokens(body: string): string[] {
 }
 
 function normalizeFigure(token: string): string {
-  const compact = token.toLowerCase().replace(/\s+/g, "").replace(/-/g, "–");
+  const compact = token
+    .toLowerCase()
+    .replace(/[\s*_]+/g, "")
+    .replace(/-/g, "–");
   return compact.startsWith("n=")
     ? `n=${compact.slice(2).replace(/[.,]/g, "")}`
     : compact;
@@ -59,7 +64,7 @@ export function checkResearchNumbers(
 
     if (stats === null) {
       if (report.kind === "field-note") {
-        for (const sentence of sentencesWithFigures(report.body)) {
+        for (const sentence of sentencesWithFigures(publishedText(report))) {
           if (!sentence.includes("](") && !sentence.includes("[^")) {
             errors.push(
               `${report.filePath}: figure without a source in "${sentence.trim().slice(0, 80)}": ` +
@@ -67,7 +72,7 @@ export function checkResearchNumbers(
             );
           }
         }
-      } else if (figureTokens(report.body).length > 0) {
+      } else if (figureTokens(publishedText(report)).length > 0) {
         errors.push(
           `${report.filePath}: the text quotes figures but there is no data/stats.json to check them against`,
         );
@@ -76,7 +81,7 @@ export function checkResearchNumbers(
     }
 
     const known = new Set(stats.labels.map(normalizeFigure));
-    for (const token of new Set(figureTokens(report.body))) {
+    for (const token of new Set(figureTokens(publishedText(report)))) {
       if (!candidates(token).some((candidate) => known.has(candidate))) {
         errors.push(
           `${report.filePath}: figure "${token}" is not in data/stats.json labels; ` +
