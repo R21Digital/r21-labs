@@ -1,4 +1,5 @@
 import { getPublishedEntries } from "@/lib/content";
+import { getPublishedReports, reportPath, twinOf } from "@/lib/research";
 import {
   ORGANIZATION,
   SITE_DESCRIPTION,
@@ -27,6 +28,23 @@ export const dynamic = "force-static";
  */
 export function GET(): Response {
   const entries = getPublishedEntries();
+  const english = getPublishedReports("en");
+  const allReports = [...english, ...getPublishedReports("es")];
+
+  // Always emitted, even with nothing published: the two index URLs are stable
+  // and a crawler that finds them early finds each report when it appears.
+  const research = [
+    "## Research",
+    "",
+    `- [Research](${SITE_URL}/research): original measurements and field notes, in English`,
+    `- [Investigación](${SITE_URL}/es/research): the same reports in Spanish`,
+    ...english.map((report) => {
+      const twin = twinOf(report, allReports);
+      return `- [${report.title}](${SITE_URL}${reportPath(report)}): ${report.summary}` +
+        (twin ? ` Spanish: ${SITE_URL}${reportPath(twin)}` : "");
+    }),
+    "",
+  ].join("\n");
 
   const section = (heading: string, type: string) => {
     const matching = entries.filter((entry) => entry.type === type);
@@ -60,6 +78,7 @@ export function GET(): Response {
     section("Tools R21 tested and recommends", "tool"),
     section("Playbooks", "playbook"),
     section("Stack", "stack"),
+    research,
     "## Also",
     "",
     `- [Notes](${SITE_URL}/blog): first-party writing, listed only when published`,

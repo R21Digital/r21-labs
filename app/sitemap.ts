@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { getPublishedEntries } from "@/lib/content";
 import { getPublishedNotes, notePath } from "@/lib/notes";
+import { getPublishedReports, reportPath } from "@/lib/research";
 import { SITE_URL, canonicalPath } from "@/lib/site";
 
 /**
@@ -26,11 +27,14 @@ import { SITE_URL, canonicalPath } from "@/lib/site";
  * accident. `tests/discovery.test.ts` states the same two paths independently —
  * if the test imported this constant it would assert nothing.
  */
-const STATIC_PAGES = ["/suggest", "/contact", "/blog", "/terms"] as const;
+const STATIC_PAGES = ["/suggest", "/contact", "/blog", "/terms", "/research", "/es/research"] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries = getPublishedEntries();
   const notes = getPublishedNotes();
+  // Both languages, each at its own URL. No hreflang alternates: the sitemap has
+  // never carried them.
+  const reports = [...getPublishedReports("en"), ...getPublishedReports("es")];
 
   const newest = entries
     .map((entry) => entry.verifiedOn)
@@ -63,6 +67,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(`${note.publishedOn}T00:00:00Z`),
       changeFrequency: "monthly" as const,
       priority: 0.6,
+    })),
+    ...reports.map((report) => ({
+      url: `${SITE_URL}${reportPath(report)}`,
+      lastModified: new Date(`${report.publishedOn}T00:00:00Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
     })),
   ];
 }

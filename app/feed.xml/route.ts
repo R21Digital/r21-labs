@@ -1,5 +1,6 @@
 import { getPublishedEntries } from "@/lib/content";
 import { getPublishedNotes, notePath } from "@/lib/notes";
+import { getPublishedReports, reportPath } from "@/lib/research";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -34,6 +35,7 @@ function escapeXml(value: string): string {
 export function GET(): Response {
   const entries = getPublishedEntries();
   const notes = getPublishedNotes();
+  const reports = [...getPublishedReports("en"), ...getPublishedReports("es")];
 
   // Newest verification / publish date first. A feed ordered by filesystem
   // walk order is arbitrary, and readers show it in document order.
@@ -51,7 +53,16 @@ export function GET(): Response {
     category: "note",
     description: note.summary,
   }));
-  const ordered = [...catalogItems, ...noteItems].sort((a, b) =>
+  // The channel is declared English, so a Spanish item says so in its title;
+  // otherwise a reader shows two identical headlines side by side.
+  const reportItems = reports.map((report) => ({
+    title: report.lang === "es" ? `${report.title} (ES)` : report.title,
+    url: `${SITE_URL}${reportPath(report)}`,
+    date: report.publishedOn,
+    category: "research",
+    description: report.summary,
+  }));
+  const ordered = [...catalogItems, ...noteItems, ...reportItems].sort((a, b) =>
     (b.date ?? "").localeCompare(a.date ?? ""),
   );
 

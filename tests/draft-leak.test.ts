@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { readEntriesUnguarded } from "@/lib/content";
 import { readNotesUnguarded } from "@/lib/notes";
+import { readResearchUnguarded } from "@/lib/research";
 
 /**
  * Spec §10 — the draft-leak test.
@@ -137,4 +138,29 @@ describe("draft leak (spec §10)", () => {
       }
     }
   });
-});
+
+  it("ships no draft research text in any rendered file", () => {
+    // Covers /research and /es/research (HTML and RSC), the sitemap, the feed
+    // and llms.txt: all of them are in `files`.
+    const drafts = readResearchUnguarded().filter((r) => r.status === "draft");
+    expect(
+      drafts.length,
+      "No draft research exists, so this test proves nothing. Keep a draft " +
+        "fixture in content/research/ until a real draft takes its place.",
+    ).toBeGreaterThan(0);
+
+    for (const draft of drafts) {
+      const markers = [draft.title, draft.slug, draft.summary].filter(
+        (value) => value && value.length >= 8,
+      );
+      for (const file of files) {
+        const contents = fs.readFileSync(file, "utf8");
+        for (const marker of markers) {
+          expect(
+            contents.includes(marker),
+            `Draft report "${draft.title}" leaked "${marker}" into ${path.relative(process.cwd(), file)}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });});

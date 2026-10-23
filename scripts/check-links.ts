@@ -8,20 +8,24 @@
  */
 import { readEntriesUnguarded } from "../lib/content";
 import { checkLinks, deadInternalLinks } from "../lib/guards/links";
+import { getPublishedReports, reportPath } from "../lib/research";
 
 /**
  * Non-entry pages a body is allowed to link to. Listed rather than discovered,
  * for the same reason the sitemap lists them: a filesystem walk would make the
  * claim by accident.
  */
-const STATIC_PATHS = ["/suggest", "/contact", "/blog"];
+const STATIC_PATHS = ["/suggest", "/contact", "/blog", "/research", "/es/research"];
+
+// A catalog entry may link to a published report, in either language.
+const REPORT_PATHS = [...getPublishedReports("en"), ...getPublishedReports("es")].map(reportPath);
 
 const entries = readEntriesUnguarded();
 const published = entries.filter((entry) => entry.status === "published");
 
 // Offline and first: a broken internal link is knowable without the network,
 // so it should never wait on it — or be masked by it being down.
-const brokenInternal = deadInternalLinks(entries, STATIC_PATHS);
+const brokenInternal = deadInternalLinks(entries, [...STATIC_PATHS, ...REPORT_PATHS]);
 if (brokenInternal.length > 0) {
   console.error(
     `\nBROKEN INTERNAL LINKS (${brokenInternal.length}):\n  - ${brokenInternal.join("\n  - ")}\n\n` +
