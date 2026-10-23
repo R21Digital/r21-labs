@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 
 import type { Report } from "./research";
-import { OG_IMAGE, SITE_URL } from "./site";
+import { SITE_URL } from "./site";
 
 /**
  * Metadata for a report page, shared by the English and Spanish routes so the
  * hreflang pair cannot drift between them. Absolute URLs on purpose: an
  * hreflang that resolves against the wrong origin is silently ignored.
  *
- * The per-report Open Graph image arrives with the opengraph-image route; until
- * then the page spreads the site card, because a page that declares its own
- * `openGraph` block does not inherit the root one (see `OG_IMAGE`).
+ * No `images` here on purpose: the segment's `opengraph-image` route supplies
+ * the per-report card, and an explicit `images` entry would override it with the
+ * site card.
  */
 export function reportMetadata(report: Report): Metadata {
   const en = `${SITE_URL}/research/${report.slug}`;
@@ -28,7 +28,6 @@ export function reportMetadata(report: Report): Metadata {
       title: `${report.title} · R21 Labs`,
       description: report.summary,
       url: canonical,
-      ...OG_IMAGE,
     },
   };
 }

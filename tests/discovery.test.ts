@@ -243,6 +243,29 @@ describe("discovery layer — build output", () => {
     }
   });
 
+  it("gives each published report its own Open Graph image, per language", () => {
+    // Zero published reports must not make this vacuous: the site card is the
+    // fallback every other page uses, so assert it on the research index too.
+    const index = fs.readFileSync(path.join(BUILD_DIR, "research.html"), "utf8");
+    expect(decode(/<meta property="og:image" content="(.*?)"/.exec(index)?.[1] ?? "")).toContain(
+      `${SITE_URL}/opengraph-image`,
+    );
+
+    for (const r of [...getPublishedReports("en"), ...getPublishedReports("es")]) {
+      const file = path.join(BUILD_DIR, `${reportPath(r).replace(/^\//, "")}.html`);
+      expect(fs.existsSync(file), `${reportPath(r)} was not prerendered.`).toBe(true);
+      const html = fs.readFileSync(file, "utf8");
+
+      // Next may append a `?hash` cache-buster to a file-convention image.
+      const og = decode(/<meta property="og:image" content="(.*?)"/.exec(html)?.[1] ?? "");
+      expect(
+        og === `${SITE_URL}${reportPath(r)}/opengraph-image` ||
+          og.startsWith(`${SITE_URL}${reportPath(r)}/opengraph-image?`),
+        `${reportPath(r)} og:image is ${og || "missing"}, not its own card.`,
+      ).toBe(true);
+    }
+  });
+
   it("publishes llms.txt, listing published entries and no drafts", () => {
     // R21 sells AI-search visibility, and `llms_txt` is one of the checks
     // R21's own fleet canary runs against CLIENT sites. On 2026-08-22 the
