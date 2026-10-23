@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
+import { checkResearchCompleteness } from "./guards/research-completeness";
+import { checkResearchDenylist } from "./guards/research-denylist";
+import { checkResearchNumbers } from "./guards/research-numbers";
+import { checkResearchPairing } from "./guards/research-pairing";
 import { isIsoDate } from "./schema";
 
 /**
@@ -183,14 +187,50 @@ export function readResearchUnguarded(dir: string = RESEARCH_DIR): Report[] {
   return reports;
 }
 
+function readDataFile(report: Report, name: string): string | null {
+  const file = path.join(report.dir, "data", name);
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+}
+
+/** `data/stats.json` of a report, or null when it ships none. */
+export function readReportStats(report: Report): { labels: string[] } | null {
+  const raw = readDataFile(report, "stats.json");
+  if (raw === null) return null;
+  const parsed: unknown = JSON.parse(raw);
+  const labels = (parsed as { labels?: unknown } | null)?.labels;
+  if (!Array.isArray(labels) || !labels.every((l) => typeof l === "string")) {
+    throw new Error(`${report.filePath}: data/stats.json needs a \`labels\` list of strings`);
+  }
+  return { labels };
+}
+
+/** SHA-256 hashes from `data/denylist.sha256`. Empty when the file is absent. */
+export function readReportDenylist(report: Report): Set<string> {
+  const raw = readDataFile(report, "denylist.sha256") ?? "";
+  return new Set(
+    raw
+      .split(/\r?\n/)
+      .map((line) => line.trim().toLowerCase())
+      .filter((line) => line !== ""),
+  );
+}
+
+/** The data text a published report could leak a domain through. */
+export function readReportDataText(report: Report): string {
+  return ["METHOD.md", "results.csv"].map((name) => readDataFile(report, name) ?? "").join("\n");
+}
+
 /**
  * Publishing guards for research. Takes the published reports of ALL languages
  * so pairing can see both twins. Returns error strings; empty means clean.
- * Wired to its real checks in the guards task.
  */
 export function runResearchGuards(reports: Report[]): string[] {
-  void reports;
-  return [];
+  return [
+    ...checkResearchCompleteness(reports),
+    ...checkResearchNumbers(reports, readReportStats),
+    ...checkResearchDenylist(reports, readReportDenylist, readReportDataText),
+    ...checkResearchPairing(reports),
+  ];
 }
 
 export function getPublishedReports(lang: Lang, dir: string = RESEARCH_DIR): Report[] {
