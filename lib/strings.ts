@@ -11,6 +11,21 @@ import type { Lang } from "./research";
  * lives in the language of the page that shows it: English pages say
  * "Leer en español", Spanish pages say "Read in English".
  */
+export interface FooterStrings {
+  newEntries: string;
+  subscribeCopy: string;
+  email: string;
+  emailPlaceholder: string;
+  subscribe: string;
+  successTitle: string;
+  successBody: string;
+  navLabel: string;
+  notes: string;
+  suggest: string;
+  work: string;
+  terms: string;
+}
+
 export interface Strings {
   research: string;
   allReports: string;
@@ -28,6 +43,7 @@ export interface Strings {
   bibtex: string;
   by: string;
   home: string;
+  footer: FooterStrings;
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -49,6 +65,22 @@ export const STRINGS: Record<Lang, Strings> = {
     bibtex: "BibTeX",
     by: "By",
     home: "R21 Labs",
+    footer: {
+      newEntries: "New entries",
+      subscribeCopy:
+        "A note when something is added or a playbook lands. No schedule, because there is no point sending one when nothing has been tested. Your address is used for that and nothing else.",
+      email: "Email",
+      emailPlaceholder: "you@company.com",
+      subscribe: "Subscribe",
+      successTitle: "Got your address.",
+      successBody:
+        "A person at R21 adds it by hand — there is no automated list yet, so this is not instant. You'll hear from us when there is something worth sending.",
+      navLabel: "Site",
+      notes: "Notes",
+      suggest: "Suggest a tool",
+      work: "Work with R21",
+      terms: "Terms",
+    },
   },
   es: {
     research: "Investigación",
@@ -68,5 +100,21 @@ export const STRINGS: Record<Lang, Strings> = {
     bibtex: "BibTeX",
     by: "Por",
     home: "R21 Labs",
+    footer: {
+      newEntries: "Entradas nuevas",
+      subscribeCopy:
+        "Una nota cuando se añada algo o salga un playbook. No hay calendario, porque no tiene sentido enviar uno cuando no se ha probado nada. Su correo se usa para eso y para nada más.",
+      email: "Correo electrónico",
+      emailPlaceholder: "usted@empresa.com",
+      subscribe: "Suscribirse",
+      successTitle: "Recibimos su correo.",
+      successBody:
+        "Una persona de R21 lo añade a mano; todavía no hay una lista automatizada, así que no es instantáneo. Sabrá de nosotros cuando haya algo que valga la pena enviar.",
+      navLabel: "Sitio",
+      notes: "Notas",
+      suggest: "Sugerir una herramienta",
+      work: "Trabaje con R21",
+      terms: "Términos",
+    },
   },
 };

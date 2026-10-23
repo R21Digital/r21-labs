@@ -105,3 +105,46 @@ describe("research report pages", () => {
     }
   });
 });
+
+/**
+ * The footer is rendered by the root layout on every page. On `/es/*` it picks
+ * Spanish from the path. The English strings are stated literally here, not
+ * read from lib/strings.ts, so a change to the English footer fails this test.
+ */
+const EN_SUBSCRIBE_COPY =
+  "A note when something is added or a playbook lands. No schedule, because there is no point sending one when nothing has been tested. Your address is used for that and nothing else.";
+
+describe("footer language", () => {
+  it("shows the Spanish footer on Spanish research pages and not the English subscribe text", () => {
+    const pages = [built("es/research.html"), ...es.map((r) => built(`es/research/${r.slug}.html`))];
+    for (const page of pages) {
+      expect(page).toContain(STRINGS.es.footer.subscribeCopy);
+      expect(page).toContain(STRINGS.es.footer.newEntries);
+      expect(page).toContain(STRINGS.es.footer.work);
+      expect(page).not.toContain(EN_SUBSCRIBE_COPY);
+      expect(page).not.toContain("New entries");
+      expect(page).not.toContain("Work with R21");
+    }
+  });
+
+  it("keeps the English footer on English pages, unchanged", () => {
+    const pages = [
+      built("index.html"),
+      built("research.html"),
+      ...en.map((r) => built(`research/${r.slug}.html`)),
+    ];
+    for (const page of pages) {
+      expect(page).toContain(EN_SUBSCRIBE_COPY);
+      expect(page).toContain("New entries");
+      expect(page).toContain("Work with R21");
+      expect(page).not.toContain(STRINGS.es.footer.subscribeCopy);
+    }
+  });
+
+  it("keeps the footer link URLs unchanged on Spanish pages", () => {
+    const page = built("es/research.html");
+    for (const href of ["/blog", "/suggest", "/contact", "/terms"]) {
+      expect(page).toContain(`href="${href}"`);
+    }
+  });
+});
