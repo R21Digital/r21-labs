@@ -10,7 +10,8 @@
     "test": "vitest run",
     "check:links": "vite-node scripts/check-links.ts",
     "logos": "vite-node scripts/fetch-logos.ts",
-    "prebuild": "npm run check:links",
+    "research:data": "vite-node scripts/copy-research-data.ts",
+    "prebuild": "npm run check:links && npm run research:data",
     "verify": "npm run build && npm run test"
   },
   "dependencies": {
