@@ -11,6 +11,7 @@
     "check:links": "vite-node scripts/check-links.ts",
     "logos": "vite-node scripts/fetch-logos.ts",
     "research:data": "vite-node scripts/copy-research-data.ts",
+    "research:pdf": "vite-node scripts/research-pdf.ts",
     "prebuild": "npm run check:links && npm run research:data",
     "verify": "npm run build && npm run test"
   },
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "playwright": "^1.64.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-node": "^6.0.0",
