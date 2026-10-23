@@ -1,4 +1,4 @@
-import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og";
+import { OG_CONTENT_TYPE, OG_SIZE, ogImage, ogSubtitle } from "@/lib/og";
 import { getPublishedReports } from "@/lib/research";
 
 export const alt = "R21 Labs research report";
@@ -28,7 +28,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   return ogImage({
     eyebrow: `R21 Labs Research · Issue ${report.issue}`,
     title: report.title,
-    subtitle: report.summary,
+    subtitle: ogSubtitle(report.summary),
     meta:
       report.sampleSize !== undefined
         ? `${report.measuredOn} · n = ${report.sampleSize}`
