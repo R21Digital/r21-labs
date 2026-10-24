@@ -170,3 +170,24 @@ body {
     transform: translateY(-2px);
   }
 }
+
+/* Research PDFs are this stylesheet's print rendering (scripts/research-pdf.ts
+   prints each report page with emulated print media). Scoped to report pages
+   through the citation block's heading, so no other page's print output changes.
+   The site has no light theme: this re-points the tokens for paper only, so a
+   report prints dark-on-white, and the footer's subscribe form, which means
+   nothing on a page of paper, is dropped. */
+@media print {
+  body:has(#cite-heading) {
+    --color-canvas: #ffffff;
+    --color-surface: #f5f5f5;
+    --color-ink: #0a0a14;
+    --color-ink-muted: #3d4254;
+    --color-ink-dim: #4a4f63;
+    --hairline: rgba(10, 10, 20, 0.15);
+  }
+
+  body:has(#cite-heading) footer {
+    display: none;
+  }
+}

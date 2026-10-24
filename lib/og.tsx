@@ -47,6 +47,14 @@ export interface OgCard {
   meta?: string;
 }
 
+/**
+ * A share card is a glance, not a read. Cut long text at a word boundary
+ * rather than mid-word, so the footer and wordmark stay on the card.
+ */
+export function ogSubtitle(text: string, max = 150): string {
+  return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
+}
+
 export function ogImage({ eyebrow, title, subtitle, meta }: OgCard): ImageResponse {
   return new ImageResponse(
     (

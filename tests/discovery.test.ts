@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { getPublishedEntries, readEntriesUnguarded } from "@/lib/content";
 import { getPublishedNotes, notePath } from "@/lib/notes";
+import { getPublishedReports, readResearchUnguarded, reportPath, twinOf } from "@/lib/research";
 import { SITE_URL, canonicalPath } from "@/lib/site";
 
 /**
@@ -115,11 +116,66 @@ describe("discovery layer — build output", () => {
       `${SITE_URL}/contact`,
       `${SITE_URL}/blog`,
       `${SITE_URL}/terms`,
+      `${SITE_URL}/research`,
+      `${SITE_URL}/es/research`,
+      ...[...getPublishedReports("en"), ...getPublishedReports("es")].map(
+        (report) => `${SITE_URL}${reportPath(report)}`,
+      ),
       ...getPublishedEntries().map((entry) => `${SITE_URL}${canonicalPath(entry)}`),
       ...getPublishedNotes().map((note) => `${SITE_URL}${notePath(note)}`),
     ];
 
     expect([...listed].sort()).toEqual([...expected].sort());
+  });
+
+  it("lists the research indexes and both language URLs of each published report in the sitemap", () => {
+    const xml = fs.readFileSync(builtFile("sitemap.xml") as string, "utf8");
+    // These two hold with zero published reports, so the test asserts something
+    // real while issue 1 is still a draft.
+    expect(xml).toContain(`${SITE_URL}/research</loc>`);
+    expect(xml).toContain(`${SITE_URL}/es/research</loc>`);
+    for (const r of [...getPublishedReports("en"), ...getPublishedReports("es")]) {
+      expect(xml).toContain(`${SITE_URL}${reportPath(r)}</loc>`);
+    }
+  });
+
+  it("lists research in llms.txt, with each published report's Spanish twin", () => {
+    const body = fs.readFileSync(builtFile("llms.txt") as string, "utf8");
+    expect(body).toContain("## Research");
+    expect(body).toContain(`${SITE_URL}/research`);
+    expect(body).toContain(`${SITE_URL}/es/research`);
+
+    const all = [...getPublishedReports("en"), ...getPublishedReports("es")];
+    for (const r of getPublishedReports("en")) {
+      expect(body, `${r.title} missing from llms.txt`).toContain(r.title);
+      expect(body).toContain(`${SITE_URL}${reportPath(r)}`);
+      const twin = twinOf(r, all);
+      expect(twin, `${r.slug} has no Spanish twin`).toBeTruthy();
+      expect(body).toContain(`${SITE_URL}${reportPath(twin as NonNullable<typeof twin>)}`);
+    }
+  });
+
+  it("puts published reports in the feed, Spanish items suffixed (ES)", () => {
+    const feed = fs.readFileSync(builtFile("feed.xml") as string, "utf8");
+    for (const r of [...getPublishedReports("en"), ...getPublishedReports("es")]) {
+      expect(feed).toContain(`${SITE_URL}${reportPath(r)}</link>`);
+      const title = decode(r.title);
+      expect(decode(feed)).toContain(
+        r.lang === "es" ? `<title>${title} (ES)</title>` : `<title>${title}</title>`,
+      );
+    }
+  });
+
+  it("keeps draft research out of the sitemap, feed and llms.txt", () => {
+    const drafts = readResearchUnguarded().filter((r) => r.status === "draft");
+    for (const stem of ["sitemap.xml", "feed.xml", "llms.txt"]) {
+      const body = fs.readFileSync(builtFile(stem) as string, "utf8");
+      for (const d of drafts) {
+        expect(body.includes(`/${d.slug}`), `Draft report "${d.slug}" leaked into ${stem}.`).toBe(
+          false,
+        );
+      }
+    }
   });
 
   it("gives every page its own title", () => {
@@ -183,6 +239,29 @@ describe("discovery layer — build output", () => {
       expect(
         decode(ogImage as string).startsWith("http"),
         `${file} has a RELATIVE og:image (${ogImage}) — scrapers ignore it.`,
+      ).toBe(true);
+    }
+  });
+
+  it("gives each published report its own Open Graph image, per language", () => {
+    // Zero published reports must not make this vacuous: the site card is the
+    // fallback every other page uses, so assert it on the research index too.
+    const index = fs.readFileSync(path.join(BUILD_DIR, "research.html"), "utf8");
+    expect(decode(/<meta property="og:image" content="(.*?)"/.exec(index)?.[1] ?? "")).toContain(
+      `${SITE_URL}/opengraph-image`,
+    );
+
+    for (const r of [...getPublishedReports("en"), ...getPublishedReports("es")]) {
+      const file = path.join(BUILD_DIR, `${reportPath(r).replace(/^\//, "")}.html`);
+      expect(fs.existsSync(file), `${reportPath(r)} was not prerendered.`).toBe(true);
+      const html = fs.readFileSync(file, "utf8");
+
+      // Next may append a `?hash` cache-buster to a file-convention image.
+      const og = decode(/<meta property="og:image" content="(.*?)"/.exec(html)?.[1] ?? "");
+      expect(
+        og === `${SITE_URL}${reportPath(r)}/opengraph-image` ||
+          og.startsWith(`${SITE_URL}${reportPath(r)}/opengraph-image?`),
+        `${reportPath(r)} og:image is ${og || "missing"}, not its own card.`,
       ).toBe(true);
     }
   });

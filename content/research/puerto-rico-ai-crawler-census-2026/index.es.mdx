@@ -1,0 +1,185 @@
+---
+title: "¿Cuántos sitios web de negocios en Puerto Rico bloquean a los bots de IA?"
+status: draft
+lang: es
+kind: measurement
+author: "Carlos Jimenez, R21 Digital"
+pair: index.en.mdx
+issue: 1
+measuredOn: 2026-10-22
+sampleSize: 246
+summary: "De 246 sitios web de negocios de Puerto Rico que revisamos en octubre de 2026, 8 tenían reglas en su robots.txt que bloqueaban por lo menos a uno de ocho bots de IA, y 29 rechazaron a un visitante de investigación que decía claramente quién era, o le exigieron una verificación anti-bots."
+dataFiles:
+  - data/results.csv
+  - data/stats.json
+  - data/build_stats.py
+  - data/METHOD.md
+---
+
+## La pregunta
+
+Es algo que hemos oído decir, casi siempre atado a un cambio que hizo Cloudflare en 2025: desde que Cloudflare empezó a bloquear a los bots de IA por defecto, los negocios le están cerrando la puerta a ChatGPT. Lo de Cloudflare es cierto. El 1 de julio de 2025, Cloudflare [anunció](https://www.cloudflare.com/press/press-releases/2025/cloudflare-just-changed-how-ai-crawlers-scrape-the-internet-at-large/) que, por defecto, bloquearía a los bots de IA que entran al contenido sin permiso, y que a cada dominio nuevo en su red se le preguntaría si quiere dejarlos pasar. Lo otro, lo que hacen los negocios, es una afirmación que no habíamos visto a nadie comprobar en Puerto Rico. Este censo la mira en el robots.txt y en cómo los servidores le contestan a un visitante identificado; el bloqueo en la red de Cloudflare es otro mecanismo que el censo no puede ver (vea la sección de Cloudflare más abajo).
+
+Así que hicimos una pregunta que sí se puede medir: ¿cuántos sitios web de negocios en Puerto Rico les dicen a los bots de IA que no entren?
+
+## En resumen
+
+En los 246 sitios web de negocios de Puerto Rico que revisamos, los archivos robots.txt muestran que muy pocos le están cerrando la puerta a la IA. Encontramos un bloqueo a por lo menos uno de ocho bots de IA conocidos en 8 sitios (3,3 %), y un bloqueo a OAI-SearchBot, el bot que usa la búsqueda de ChatGPT, en 4 (1,6 %). Fueron más, 29 (11,8 %), los que en la página principal rechazaron a nuestro visitante de investigación, que se identificaba abiertamente, o le exigieron una verificación anti-bots: un servidor puede sacar a los visitantes automatizados sin que nadie haya escrito una sola regla sobre IA.
+
+Esos conteos son los bloqueos que pudimos ver. En 31 de los 246 sitios no pudimos leer las reglas del robots.txt: 22 rechazaron la petición con un 403, y 9 contestaron otra cosa (3 redirecciones que no seguimos, 2 errores de conflicto y 4 errores del servidor). Siguen contando en el denominador, y las reglas que tengan no las conocemos.
+
+## Método
+
+La muestra salió de dos listas públicas:
+
+- **OpenStreetMap**, a través de la API de Overpass: todos los lugares de Puerto Rico que tienen sitio web y una etiqueta de negocio (tiendas, oficinas, salud, oficios, y algunas etiquetas de comida, hospedaje y recreación). Datos al 2026-10-22T20:19Z. Datos del mapa © [colaboradores de OpenStreetMap](https://www.openstreetmap.org/copyright), bajo la Open Database License.
+- **La [página de “New Members”](https://camarapr.org/new-members/) de la Cámara de Comercio de Puerto Rico**, con la lista del 2026-05-27. Fue la única lista pública de socios que encontramos.
+
+Dejamos un solo registro por dominio y sacamos las páginas de redes sociales, las direcciones de hosting compartido, los dominios de gobierno y de escuelas, y los dominios que aparecen en cinco o más puntos del mapa, que probablemente son cadenas. De la lista de la Cámara también sacamos los dominios de la propia Cámara y 26 sitios de grandes corporaciones o del gobierno. Quedaron 908 dominios: 211 de la Cámara y 697 que solo estaban en OpenStreetMap. De cada lista escogimos 150 al azar.
+
+El 22 de octubre de 2026, entre las 20:24 y las 20:46 UTC, le pedimos a cada sitio su `/robots.txt` y después su página principal. Las peticiones fueron de una en una, con al menos 1,2 segundos entre cada una, y todas se identificaron como `R21Digital-research/1.0 (+https://r21digital.com)`. No pedimos la página principal de los tres sitios cuyo robots.txt le cierra el sitio completo a todos los bots.
+
+Para decidir qué grupo del robots.txt le aplica a cada bot seguimos lo que dice el [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309): cada bot sigue el grupo que lo nombra, o el grupo `*` si ninguno lo nombra. Contamos un bot como bloqueado cuando sus reglas le cierran la raíz del sitio, `/`. No seguimos las redirecciones de la petición del robots.txt, aunque el RFC 9309 dice que los bots deben seguirlas; los 3 sitios que contestaron con una redirección cuentan entre las 9 otras respuestas de más abajo. Los ocho bots que revisamos son GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot y Bytespider.
+
+No visitamos ningún sitio haciéndonos pasar por GPTBot ni por el bot de ninguna otra compañía. Hacerse pasar por el bot de otro no es una forma honesta de investigar. Eso quiere decir que este informe ve lo que el robots.txt de cada sitio le dice a cada bot y cómo el servidor trata a un visitante que dice la verdad sobre quién es. No ve lo que hace un firewall cuando llega el GPTBot de verdad.
+
+Los rangos en las tablas son intervalos de confianza del 95 por ciento (método de Wilson). Dicen cuánto podría moverse una cifra de una selección al azar de estas dos listas a otra; no dicen nada de los negocios que no están en ninguna de las dos. Como escogimos 150 sitios de cada lista, la de la Cámara, que es la más pequeña, pesa más en las cifras combinadas de lo que le correspondería según el tamaño de cada lista, y aporta 141 de los 246 sitios que contestaron. Las dos listas salen parecidas, por ejemplo el 3,5 % de los sitios de la Cámara y el 2,9 % de los de OpenStreetMap bloquean a algún bot de IA, así que es poco probable que ese peso mueva mucho el resultado principal.
+
+R21 Digital diseña y administra sitios web para negocios de Puerto Rico; ninguno de los sitios que hacemos o alojamos para clientes salió en la muestra.
+
+## La muestra
+
+| Paso | Sitios |
+|---|---|
+| Escogidos al azar (150 por lista) | 300 |
+| Sacados después de la selección porque claramente no eran negocios locales | 29 |
+| Quedaron en la muestra | 271 |
+| No contestaron nada (23 fallos de DNS, 1 error de TLS, 1 conexión cortada) | 25 |
+| Contestaron | 246 |
+
+Lo que devolvieron las 246 peticiones del robots.txt:
+
+| Resultado | Sitios |
+|---|---|
+| Un robots.txt con reglas para bots | 170 |
+| Ningún robots.txt que sirva (no existe, es una página HTML, está vacío o no tiene reglas) | 45 |
+| Rechazo con un 403 | 22 |
+| Otra respuesta (redirecciones, conflictos, errores del servidor) | 9 |
+
+Todos los porcentajes de aquí en adelante usan los 246 sitios que contestaron, a menos que se diga otra cosa. Los 29 sitios que sacamos no cuentan en ninguna cifra ni están en los datos publicados. De los 31 sitios de las últimas dos filas no tenemos reglas que leer, así que en las cifras de abajo cuentan como que no bloquean, sean cuales sean sus reglas de verdad. Las cuatro filas suman los 246.
+
+## Lo que encontramos
+
+### Muy pocos sitios bloquean a los bots de IA
+
+| Medida | Sitios | Porcentaje | Rango |
+|---|---|---|---|
+| Bloquea al menos uno de los ocho bots de IA | 8 | 3,3 % | 1,7–6,3 % |
+| … con una regla que nombra a un bot de IA | 5 | 2,0 % | 0,9–4,7 % |
+| … solo con `User-agent: *` y `Disallow: /`, que en estos sitios también saca a los buscadores | 3 | 1,2 % | 0,4–3,5 % |
+| Bloquea a GPTBot (el bot de entrenamiento de OpenAI) | 7 | 2,8 % | 1,4–5,8 % |
+| Bloquea a OAI-SearchBot (la búsqueda de ChatGPT) | 4 | 1,6 % | 0,6–4,1 % |
+| Bloquea a GPTBot pero no a OAI-SearchBot | 3 | 1,2 % | 0,4–3,5 % |
+
+Eso es más o menos 3 de cada 100. En tres de esos ocho sitios el bloqueo no es específico para la IA. El robots.txt de cada uno tiene un solo grupo, `User-agent: *` con `Disallow: /`, y nada más, así que les dice a todos los bots que no entren, los de Google y Bing incluidos. Los tres contestaron la petición del robots.txt; no les pedimos la página principal, como pide el archivo. Desde afuera no se puede saber si el bloqueo fue a propósito o si se quedó así desde que se montó el sitio.
+
+Si miramos solamente los 170 sitios que tienen reglas, el cuadro es el mismo: 5 (2,9 %) nombran a un bot de IA para bloquearlo y 3 (1,8 %) bloquean todo.
+
+### La búsqueda de ChatGPT se bloquea menos que el entrenamiento
+
+OpenAI usa bots distintos para trabajos distintos. GPTBot recoge material para entrenar modelos; OAI-SearchBot busca páginas para los resultados de búsqueda de ChatGPT. La [documentación de OpenAI sobre sus bots](https://developers.openai.com/api/docs/bots) dice que cada regla del robots.txt es independiente de las otras, así que bloquear uno no bloquea al otro.
+
+Los sitios de la muestra no los tratan igual. Siete bloquean a GPTBot; cuatro bloquean a OAI-SearchBot. Tres sitios bloquean a GPTBot pero no a OAI-SearchBot. Dos de ellos tienen la sección de robots.txt que administra Cloudflare; en estos dos sitios esa sección incluye bots de entrenamiento como GPTBot, ClaudeBot y CCBot y no incluye ni a OAI-SearchBot ni a ChatGPT-User. El tercero tiene su propia lista de como una docena de bots de IA, y OAI-SearchBot no está en ella.
+
+De los cuatro sitios que bloquean a OAI-SearchBot, tres lo hacen con un `Disallow: /` que bloquea todo. Un solo sitio nombra a OAI-SearchBot en una regla: una tienda que bloquea a los ocho bots por nombre.
+
+| Bot | Bloqueado | Bloqueado por una regla que lo nombra |
+|---|---|---|
+| GPTBot | 7 (2,8 %) | 4 |
+| ChatGPT-User | 4 (1,6 %) | 1 |
+| OAI-SearchBot | 4 (1,6 %) | 1 |
+| ClaudeBot | 7 (2,8 %) | 4 |
+| PerplexityBot | 5 (2,0 %) | 2 |
+| Google-Extended | 7 (2,8 %) | 4 |
+| CCBot | 7 (2,8 %) | 4 |
+| Bytespider | 8 (3,3 %) | 5 |
+
+### Algunos sitios nombran a los bots de IA solo para dejarlos entrar
+
+Quince sitios (6,1 %) mencionan por lo menos uno de los ocho bots en su robots.txt. Diez de ellos, el 4,1 % de todos los sitios, los nombran solamente para dejarlos entrar, entre ellos un hotel con una lista de bots permitidos.
+
+### Lo que vimos más a menudo que un bloqueo
+
+| Medida | Sitios | Porcentaje | Rango |
+|---|---|---|---|
+| No tiene robots.txt (404) | 33 | 13,4 % | 9,7–18,2 % |
+| No tiene un robots.txt que sirva (no existe, es una página HTML, está vacío o no tiene reglas) | 45 | 18,3 % | 14,0–23,6 % |
+| El robots.txt le contestó 403 a nuestro visitante | 22 | 8,9 % | 6,0–13,2 % |
+| La página principal le contestó 403 o 429 a nuestro visitante, o le exigió una verificación anti-bots | 29 | 11,8 % | 8,3–16,4 % |
+
+No tener robots.txt no es un bloqueo. Esos 33 sitios no tienen ninguna restricción en el robots.txt. Que un bot pueda entrar de verdad depende de cómo lo traten el servidor y cualquier firewall, y eso no lo probamos con bots de IA; uno de los 33 rechazó a nuestro propio visitante en la página principal.
+
+Los rechazos son otra cosa. Veintinueve páginas principales sacaron a un visitante que decía su nombre y enlazaba a quiénes somos, y los 22 sitios que rechazaron la petición del robots.txt también rechazaron la página principal. Eso no prueba que esos sitios bloqueen a ChatGPT. Nuestro visitante no es el de OpenAI, y un firewall puede tratarlos distinto. Lo que sí muestra es que la protección del servidor, que puede venir puesta por el hosting o el CDN o ser decisión del dueño, puede frenar a los visitantes automatizados sin una sola línea en el robots.txt. Si a usted le interesa salir en las búsquedas con IA, vale tanto la pena chequear cómo responde su servidor como lo que dice su robots.txt. Desde afuera no podemos saber si alguien lo configuró así a propósito.
+
+### Cloudflare es común; su bloqueo de IA no lo es, por lo menos en el robots.txt
+
+Ochenta y siete sitios (35,4 %) pasan por Cloudflare. En muchos de ellos probablemente no fue decisión del negocio: 19 de los 23 sitios en Wix y los 12 sitios en Shopify nos llegaron por Cloudflare, lo más seguro porque la plataforma sirve sus sitios a través de Cloudflare. Siete sitios (2,8 %) tienen la sección de robots.txt que administra Cloudflare, y en 2 (0,8 %) esa sección bloquea bots de IA.
+
+Esa es la parte de los controles de IA de Cloudflare que se puede ver. Cloudflare también puede bloquear bots en su red, antes de que lean el robots.txt, y ese tipo de bloqueo solo se nota cuando llega el bot al que va dirigido. Como no nos hicimos pasar por ninguno, este informe no puede decir cuántos de los 87 lo hacen.
+
+### Por lista y por plataforma
+
+| Medida | Cámara de Comercio | OpenStreetMap |
+|---|---|---|
+| Quedaron en la muestra | 146 | 125 |
+| Contestaron | 141 | 105 |
+| Bloquean algún bot de IA | 5 (3,5 %) | 3 (2,9 %) |
+| Bloquean a OAI-SearchBot | 2 (1,4 %) | 2 (1,9 %) |
+| Sin robots.txt | 17 (12,1 %) | 16 (15,2 %) |
+| El robots.txt contestó 403 | 12 (8,5 %) | 10 (9,5 %) |
+
+Los porcentajes de esta tabla usan los sitios que contestaron en cada lista.
+
+| Plataforma (estimación) | Sitios | Bloquean algún bot de IA | Sin robots.txt | Pasan por Cloudflare |
+|---|---|---|---|---|
+| WordPress | 77 | 2 | 5 | 13 |
+| Wix | 23 | 0 | 3 | 19 |
+| Constructor de sitios de GoDaddy | 17 | 0 | 1 | 6 |
+| Shopify | 12 | 0 | 0 | 12 |
+| Squarespace | 9 | 0 | 1 | 1 |
+| Webflow | 7 | 0 | 2 | 6 |
+| Next.js | 5 | 0 | 1 | 1 |
+| PHP a la medida o Joomla | 2 | 1 | 0 | 1 |
+| Sin identificar | 94 | 5 | 20 | 28 |
+
+Por plataforma los números son pequeños, así que léalos como una descripción de estos sitios y nada más. Los tres bloqueos de todo el sitio, y dos de las cinco reglas que nombran bots de IA, están en sitios cuya plataforma no pudimos identificar.
+
+## Cómo revisar su propio sitio
+
+1. **Abra su robots.txt.** Escriba su dominio seguido de `/robots.txt` en el navegador, por ejemplo `https://example.com/robots.txt`. Si le sale una página de “no encontrado”, el robots.txt no está bloqueando a nadie.
+2. **Busque una línea que cierre todo.** `User-agent: *` seguido de `Disallow: /` les dice que no entren a todos los bots que no tengan un grupo propio, y eso normalmente incluye a Google. Si su página está activa y usted quiere que los clientes la encuentren, vale la pena averiguar por qué está ahí.
+3. **Busque grupos que nombren bots de IA.** Busque en el archivo `GPTBot`, `OAI-SearchBot` y `ChatGPT-User`. GPTBot es para entrenamiento; OAI-SearchBot es la búsqueda de ChatGPT. Puede dejar pasar a uno y bloquear al otro, y una lista larga de bots bloqueados todavía puede dejar fuera justo el que usted quería parar.
+4. **Fíjese si hay una sección que usted no escribió.** Si el archivo dice `BEGIN Cloudflare Managed content`, esa parte la puso Cloudflare desde una configuración de su cuenta. Cámbiela allí.
+5. **Pregúntele a quien maneja su hosting o su CDN.** Pregunte qué respuesta recibe un visitante automatizado en su página principal, y si alguna protección anti-bots o regla del firewall trata a los bots de IA distinto a los demás visitantes. En Wix, Shopify y plataformas parecidas, esa parte la controla la plataforma, así que la pregunta va para ellos.
+
+## Límites
+
+- **No es un retrato de todo Puerto Rico.** OpenStreetMap tiende a reflejar lo que mapean los voluntarios (restaurantes, hospedajes, salud, tiendas). La lista de la Cámara tiende a reflejar firmas profesionales y B2B que pagan cuota. Los negocios que solo tienen página de Facebook no están aquí. La muestra se dividió solamente por lista, así que las cifras combinadas describen estos 246 sitios, no a todos los negocios de la isla.
+- **Hay reglas que no conocemos.** En 31 sitios no pudimos leer el robots.txt: 22 rechazos (403), 3 redirecciones que no seguimos, 2 conflictos (409) y 4 errores del servidor. Cuentan como que no bloquean, así que las cifras de bloqueo son lo que pudimos detectar. El RFC 9309 no trata igual todas esas respuestas: un bot que recibe un error del servidor tiene que dar el sitio completo por cerrado, mientras que uno que recibe una respuesta 4xx, como los 22 rechazos y los 2 conflictos, puede entrar a todo.
+- **El robots.txt es una sola capa.** Un firewall, una protección anti-bots o un límite de peticiones pueden bloquear a un bot sin ninguna línea en el robots.txt.
+- **Los rechazos fueron a nuestro visitante.** Un 403 a un visitante de investigación identificado no es un conteo de sitios que bloquean a ChatGPT ni a ningún otro bot de IA.
+- **No sabemos la intención.** Un `Disallow: /` que cierra todo el sitio puede ser a propósito. No tener robots.txt quiere decir que no hay restricción en el robots.txt, no que todos los bots entren.
+- **Un solo día.** Una sola pasada, el 22 de octubre de 2026. Los sitios cambian.
+- **Números pequeños.** La mayoría de los tipos de bloqueo abarcan entre 3 y 8 sitios, y algunos solo 1 o 2, así que los rangos son anchos. Lo justo es decir que son más o menos 3 de cada 100.
+- **La plataforma es una estimación.** Sale de los headers y del código de la página, y el 38,2 % de los sitios no se pudo identificar.
+
+## Datos y cómo reproducirlos
+
+Están publicados los datos por sitio y cada porcentaje y rango de las tablas:
+
+- [`results.csv`](/research/puerto-rico-ai-crawler-census-2026/data/results.csv): una fila por cada sitio que quedó en la muestra, 271 filas, incluidos los 25 que no contestaron. Cada fila dice de qué lista salió, la plataforma estimada, el CDN o la verificación anti-bots que vimos, el estado del robots.txt, el resultado para cada uno de los ocho bots, y las columnas de Cloudflare y de reglas por nombre que necesitan las tablas. Los sitios se identifican solamente con un hash con *salt*. No publicamos ningún dominio, nombre de negocio ni URL.
+- [`stats.json`](/research/puerto-rico-ai-crawler-census-2026/data/stats.json): cada porcentaje y rango de este informe, con su conteo y su denominador.
+- [`build_stats.py`](/research/puerto-rico-ai-crawler-census-2026/data/build_stats.py): el script que generó `stats.json`. Usa solamente la biblioteca estándar de Python, y si lo corre con el `results.csv` publicado le devuelve el mismo `stats.json`, byte por byte.
+- [`METHOD.md`](/research/puerto-rico-ai-crawler-census-2026/data/METHOD.md): la nota de método, en inglés, con la definición de cada columna.
+
+Algunos conteos no pueden salir del CSV, porque describen pasos antes de la selección o sitios que no se publican: el marco de 908 dominios y cómo se limpió, los 300 escogidos, los 29 que sacamos y cómo se reparten los 25 sitios que no contestaron entre fallos de DNS, de TLS y conexiones cortadas. Esos salen de la nota de método. En `build_stats.py`, el 300 y el 29 están escritos como constantes.

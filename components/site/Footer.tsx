@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import SubmitForm from "@/components/site/SubmitForm";
 import { ORGANIZATION, SITE_NAME } from "@/lib/site";
+import { STRINGS } from "@/lib/strings";
 
 /**
  * The footer.
@@ -31,14 +35,27 @@ import { ORGANIZATION, SITE_NAME } from "@/lib/site";
 const linkClass =
   "font-mono text-[11px] uppercase tracking-widest text-ink-dim transition-colors duration-[var(--dur-control)] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]";
 
+/**
+ * Language comes from the path, not from a layout split: the root layout stays
+ * one layout, every route stays prerendered, and `/es/*` pages get the Spanish
+ * strings from `lib/strings.ts`. The link URLs are unchanged; only labels
+ * translate, because the pages they point at are English.
+ */
 export default function Footer() {
+  const pathname = usePathname();
+  const lang = pathname === "/es" || pathname.startsWith("/es/") ? "es" : "en";
+  const f = STRINGS[lang].footer;
+
   return (
-    <footer className="mt-auto border-t border-[var(--hairline)]">
+    <footer
+      lang={lang === "es" ? "es" : undefined}
+      className="mt-auto border-t border-[var(--hairline)]"
+    >
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <div className="max-w-md">
             <p className="tabular font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-              New entries
+              {f.newEntries}
             </p>
             {/* 🔴 The copy here is deliberately smaller than the obvious version.
                 Adversarial review 2026-08-24 caught the first draft promising
@@ -48,45 +65,43 @@ export default function Footer() {
                 it has not built. When a real list with confirmed opt-in exists,
                 this copy earns the stronger claim. */}
             <p className="mt-2.5 text-sm leading-relaxed text-ink-muted">
-              A note when something is added or a playbook lands. No schedule, because
-              there is no point sending one when nothing has been tested. Your address
-              is used for that and nothing else.
+              {f.subscribeCopy}
             </p>
             <div className="mt-4">
               <SubmitForm
                 inline
                 kind="subscribe"
-                submitLabel="Subscribe"
-                successTitle="Got your address."
-                successBody="A person at R21 adds it by hand — there is no automated list yet, so this is not instant. You'll hear from us when there is something worth sending."
+                submitLabel={f.subscribe}
+                successTitle={f.successTitle}
+                successBody={f.successBody}
                 fields={[
                   {
                     name: "email",
-                    label: "Email",
+                    label: f.email,
                     type: "email",
                     required: true,
-                    placeholder: "you@company.com",
+                    placeholder: f.emailPlaceholder,
                   },
                 ]}
               />
             </div>
           </div>
 
-          <nav aria-label="Site" className="flex flex-col gap-2.5 sm:items-end">
+          <nav aria-label={f.navLabel} className="flex flex-col gap-2.5 sm:items-end">
             <Link href="/blog" className={linkClass}>
-              Notes
+              {f.notes}
             </Link>
             <Link href="/suggest" className={linkClass}>
-              Suggest a tool
+              {f.suggest}
             </Link>
             <Link href="/contact" className={linkClass}>
-              Work with R21
+              {f.work}
             </Link>
             <a href="/feed.xml" className={linkClass}>
               RSS
             </a>
             <Link href="/terms" className={linkClass}>
-              Terms
+              {f.terms}
             </Link>
             <a href={ORGANIZATION.url} className={linkClass}>
               r21digital.com

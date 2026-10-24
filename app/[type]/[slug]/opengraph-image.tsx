@@ -1,5 +1,5 @@
 import { getPublishedEntries } from "@/lib/content";
-import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/og";
+import { OG_CONTENT_TYPE, OG_SIZE, ogImage, ogSubtitle } from "@/lib/og";
 import { entryDescription } from "@/lib/site";
 
 
@@ -53,12 +53,7 @@ export default async function Image({ params }: { params: Promise<{ type: string
   return ogImage({
     eyebrow: entry.type,
     title: entry.title,
-    // A share card is a glance, not a read. Long problem statements get cut at
-    // a word boundary rather than mid-word.
-    subtitle:
-      description.length > 150
-        ? `${description.slice(0, 150).replace(/\s+\S*$/, "")}…`
-        : description,
+    subtitle: ogSubtitle(description),
     meta: entry.verifiedOn ? `verified ${entry.verifiedOn}` : undefined,
   });
 }
