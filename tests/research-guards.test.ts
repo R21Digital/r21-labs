@@ -12,6 +12,7 @@ import {
 import { checkResearchCompleteness } from "@/lib/guards/research-completeness";
 import {
   checkResearchDenylist,
+  denylistHash,
   domainForms,
   domainTokens,
 } from "@/lib/guards/research-denylist";
@@ -24,6 +25,8 @@ const fixture = (name: string) => path.join(FIXTURES, name);
 // HMAC-SHA256 of "example.org" under TEST_KEY, the hash in tests/fixtures/research/denylisted.
 const TEST_KEY = "test-denylist-key";
 const EXAMPLE_ORG_HASH = "84161cf5cda647d229b39c7cd76daab40fc8ba910d700b5ae71e46507abed8b3";
+// The key-check line every denylist carries, under TEST_KEY; also in every fixture denylist.
+const KEY_CHECK_HASH = "3fb122efee188f9f7ee584f723c4b7765f6880fcef397503ec9b45235da86a15";
 
 function runAll(dir: string): string[] {
   const published = readResearchUnguarded(dir).filter((r) => r.status === "published");
@@ -217,7 +220,11 @@ describe("domainTokens", () => {
 });
 
 describe("checkResearchDenylist", () => {
-  const deny = (...hashes: string[]) => () => ({ hashes: new Set(hashes), malformedLines: [] });
+  // A non-empty denylist carries the key-check line, as make_denylist.py writes it.
+  const deny = (...hashes: string[]) => () => ({
+    hashes: new Set(hashes.length > 0 ? [KEY_CHECK_HASH, ...hashes] : []),
+    malformedLines: [],
+  });
   const shipsCsv = { dataFiles: ["data/results.csv", "data/stats.json"] };
 
   it("hashes the www-stripped form too", () => {
@@ -322,12 +329,12 @@ describe("checkResearchDenylist", () => {
     fs.mkdirSync(path.join(dir, "data"));
     fs.writeFileSync(
       path.join(dir, "data", "denylist.sha256"),
-      `${EXAMPLE_ORG_HASH}\nexample.org\n${EXAMPLE_ORG_HASH.toUpperCase()}\n`,
+      `${KEY_CHECK_HASH}\n${EXAMPLE_ORG_HASH}\nexample.org\n${EXAMPLE_ORG_HASH.toUpperCase()}\n`,
     );
     const report = esReport("limpio", { ...shipsCsv, dir });
     const errors = checkResearchDenylist([report], readReportDenylist, () => "", TEST_KEY);
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/lines 2, 3 are not an HMAC-SHA256/);
+    expect(errors[0]).toMatch(/lines 3, 4 are not an HMAC-SHA256/);
     expect(errors[0].toLowerCase()).not.toContain("example.org");
     fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -345,6 +352,33 @@ describe("checkResearchDenylist", () => {
     }
   });
 
+  it("fails a wrong key instead of passing a check that matches nothing", () => {
+    const errors = checkResearchDenylist(
+      [esReport("Visite example.org")],
+      deny(EXAMPLE_ORG_HASH),
+      () => "",
+      "not-the-key",
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/RESEARCH_DENYLIST_KEY is not the key/);
+    expect(errors[0]).not.toContain("not-the-key");
+  });
+
+  it("fails a denylist that has no key-check line", () => {
+    const errors = checkResearchDenylist(
+      [esReport("limpio")],
+      () => ({ hashes: new Set([EXAMPLE_ORG_HASH]), malformedLines: [] }),
+      () => "",
+      TEST_KEY,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/RESEARCH_DENYLIST_KEY is not the key/);
+  });
+
+  it("uses the HMAC of the check label under TEST_KEY as the fixtures' key-check line", () => {
+    expect(denylistHash(TEST_KEY, "r21-labs-denylist-key-check")).toBe(KEY_CHECK_HASH);
+  });
+
   it("does not match a plain SHA-256 of the domain", () => {
     const plain = "bfabc37432958b063360d3ad6461c9c4735ae7f8edd46592a5e0f01452b2e4b5";
     expect(
@@ -358,11 +392,11 @@ describe("checkResearchDenylist", () => {
     fs.mkdirSync(path.join(dir, "data"));
     fs.writeFileSync(
       path.join(dir, "data", "denylist.sha256"),
-      `${EXAMPLE_ORG_HASH}\r\n\r\n  ${other} \r\n`,
+      `${KEY_CHECK_HASH}\r\n${EXAMPLE_ORG_HASH}\r\n\r\n  ${other} \r\n`,
     );
     const report = esReport("limpio", { ...shipsCsv, dir });
     const denylist = readReportDenylist(report);
-    expect([...denylist.hashes]).toEqual([EXAMPLE_ORG_HASH, other]);
+    expect([...denylist.hashes]).toEqual([KEY_CHECK_HASH, EXAMPLE_ORG_HASH, other]);
     expect(denylist.malformedLines).toEqual([]);
     expect(checkResearchDenylist([report], readReportDenylist, () => "", TEST_KEY)).toEqual([]);
     fs.rmSync(dir, { recursive: true, force: true });

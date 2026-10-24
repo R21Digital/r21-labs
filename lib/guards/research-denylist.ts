@@ -19,7 +19,10 @@ import { publishedText } from "./research-text";
  *
  * Fails closed. A published measurement that ships `results.csv` must have a
  * denylist, and a report with a denylist needs the key; without either this
- * guard would check nothing and say nothing. A line that is not 64 hex
+ * guard would check nothing and say nothing. A wrong key would do the same,
+ * matching no line, so every denylist carries one extra line, the HMAC of
+ * `KEY_CHECK` (not hostname-shaped, so prose can never match it), and the
+ * guard fails unless the key reproduces it. A line that is not 64 hex
  * characters fails too, because a typo there silently drops a domain from the
  * check.
  *
@@ -29,6 +32,8 @@ import { publishedText } from "./research-text";
 
 const DOMAIN = /[a-z0-9-]+(?:\.[a-z0-9-]+)+/g;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
+/** Hashed into every denylist by make_denylist.py; must match it byte for byte. */
+const KEY_CHECK = "r21-labs-denylist-key-check";
 
 export interface Denylist {
   hashes: Set<string>;
@@ -123,6 +128,14 @@ export function checkResearchDenylist(
       errors.push(
         `${report.filePath}: RESEARCH_DENYLIST_KEY is not set, so data/denylist.sha256 ` +
           `cannot be checked; set it (Vercel env, or the key file in _secrets/ locally)`,
+      );
+      continue;
+    }
+    if (!hashes.has(denylistHash(key, KEY_CHECK))) {
+      errors.push(
+        `${report.filePath}: RESEARCH_DENYLIST_KEY is not the key data/denylist.sha256 was ` +
+          `made with (its key-check line does not match), so nothing could be found; ` +
+          `fix the env var or regenerate the denylist with make_denylist.py`,
       );
       continue;
     }
