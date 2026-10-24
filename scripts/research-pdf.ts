@@ -3,14 +3,18 @@
  *
  * Prints every published report page, in both languages, to
  * `public/research/<slug>/<slug>.<lang>.pdf` (the path the citation block
- * links). The PDFs are committed: Vercel's build image has no browser, so they
- * are build inputs, and tests/research-pdf.test.ts is the gate that a published
- * report has them. It cannot run in `prebuild` anyway: it needs a finished
- * build to serve.
+ * links), and next to each one a `<slug>.<lang>.pdf.json` manifest with the
+ * SHA-256 of the sources it was printed from (that language's .mdx and every
+ * `dataFiles` entry). The PDFs are committed: Vercel's build image has no
+ * browser, so they are build inputs, and tests/research-pdf.test.ts is the gate
+ * that a published report has them and that they match the current sources.
+ * It cannot run in `prebuild` anyway: it needs a finished build to serve.
  *
  * Usage: `npm run build && npm run research:pdf`
  *   --base <url>   print from an already-running server instead of starting
- *                  `next start` on port 3999.
+ *                  `next start` on port 3999. That server must serve the
+ *                  current build: the manifest records this checkout's
+ *                  sources, whatever the server renders.
  *
  * Exits 1 when a page is not 200 or the server never comes up. The PDF is the
  * page's print rendering, so `@media print` in app/globals.css decides how it
@@ -23,10 +27,10 @@ import path from "node:path";
 import { chromium } from "playwright";
 
 import { getPublishedReports, reportPath, type Lang } from "../lib/research";
+import { pdfManifestFor, researchPdfManifestPath, researchPdfPath } from "../lib/research-files";
 
 const PORT = 3999;
 const STARTUP_TIMEOUT_MS = 60_000;
-const PUBLIC_DIR = path.join(process.cwd(), "public", "research");
 
 function baseFromArgs(): string | null {
   const index = process.argv.indexOf("--base");
@@ -88,7 +92,7 @@ async function waitUntilUp(base: string, child: ChildProcess): Promise<void> {
 async function main(): Promise<number> {
   const langs: Lang[] = ["en", "es"];
   const targets = langs.flatMap((lang) =>
-    getPublishedReports(lang).map((report) => ({ report, lang })),
+    getPublishedReports(lang).map((report) => ({ report })),
   );
   if (targets.length === 0) {
     console.log("research pdf: no published reports, nothing to print");
@@ -96,6 +100,12 @@ async function main(): Promise<number> {
   }
 
   const givenBase = baseFromArgs();
+  if (givenBase) {
+    console.warn(
+      `research pdf: printing from ${givenBase}. That server must serve the CURRENT build ` +
+        `of this checkout; the .pdf.json manifests record today's sources whatever it serves.`,
+    );
+  }
   const base = givenBase ?? `http://localhost:${PORT}`;
   const server = givenBase ? null : startServer();
   let failed = 0;
@@ -105,7 +115,7 @@ async function main(): Promise<number> {
 
     const browser = await chromium.launch();
     try {
-      for (const { report, lang } of targets) {
+      for (const { report } of targets) {
         const url = `${base}${reportPath(report)}`;
         const page = await browser.newPage();
         try {
@@ -117,10 +127,14 @@ async function main(): Promise<number> {
             continue;
           }
           await page.emulateMedia({ media: "print" });
-          const out = path.join(PUBLIC_DIR, report.slug, `${report.slug}.${lang}.pdf`);
+          const out = researchPdfPath(report);
           fs.mkdirSync(path.dirname(out), { recursive: true });
           await page.pdf({ path: out, format: "Letter", printBackground: true });
-          console.log(`wrote ${path.relative(process.cwd(), out).split(path.sep).join("/")}`);
+          // What this PDF was printed from, so tests/research-pdf.test.ts can
+          // tell when the report or its data changed after printing.
+          const manifest = researchPdfManifestPath(report);
+          fs.writeFileSync(manifest, `${JSON.stringify(pdfManifestFor(report), null, 2)}\n`);
+          console.log(`wrote ${path.relative(process.cwd(), out).split(path.sep).join("/")} (+ .json)`);
         } finally {
           await page.close();
         }

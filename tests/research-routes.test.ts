@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-import { getPublishedReports, reportPath } from "@/lib/research";
+import { getPublishedReports, readResearchUnguarded, reportPath } from "@/lib/research";
 import { SITE_URL } from "@/lib/site";
 import { STRINGS } from "@/lib/strings";
 
@@ -86,6 +86,32 @@ describe("research report pages", () => {
       for (const file of report.dataFiles) {
         expect(page).toContain(`/research/${report.slug}/data/${path.basename(file)}`);
       }
+    }
+  });
+
+  it("does not prerender a page or copy data for a report that is not published", () => {
+    // content/research/_draft-fixture/ is a permanent draft, so this never
+    // checks an empty list, whatever is published.
+    const published = new Set(en.map((r) => r.slug));
+    const drafts = [
+      ...new Set(
+        readResearchUnguarded()
+          .filter((r) => !published.has(r.slug))
+          .map((r) => r.slug),
+      ),
+    ];
+    expect(drafts, "the permanent draft fixture is missing or was published").toContain(
+      "_draft-fixture",
+    );
+    for (const slug of drafts) {
+      const draft = { slug };
+      for (const page of [`research/${draft.slug}.html`, `es/research/${draft.slug}.html`]) {
+        expect(fs.existsSync(path.join(BUILD_DIR, page)), `${page} was built for a draft`).toBe(
+          false,
+        );
+      }
+      const data = path.join(process.cwd(), "public", "research", draft.slug, "data");
+      expect(fs.existsSync(data), `${data} was copied for a draft`).toBe(false);
     }
   });
 

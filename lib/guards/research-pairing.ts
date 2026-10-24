@@ -9,7 +9,11 @@ import type { Report } from "../research";
  * either way the published side has no published twin, and that is the error.
  */
 
-const SHARED_FIELDS = ["issue", "measuredOn", "sampleSize", "publishedOn"] as const;
+// `dataFiles` too: both languages link the same download folder, so a file one
+// side offers and the other does not is a mismatch, not a translation choice.
+const SHARED_FIELDS = ["issue", "measuredOn", "sampleSize", "publishedOn", "dataFiles"] as const;
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function checkResearchPairing(reports: Report[]): string[] {
   const errors: string[] = [];
@@ -35,7 +39,7 @@ export function checkResearchPairing(reports: Report[]): string[] {
     // Compare once per pair, from the English side.
     if (report.lang !== "en") continue;
     for (const field of SHARED_FIELDS) {
-      if (report[field] !== twin[field]) {
+      if (!same(report[field], twin[field])) {
         fail(
           `\`${field}\` differs from its twin ${twin.filePath} ` +
             `(${String(report[field])} vs ${String(twin[field])})`,

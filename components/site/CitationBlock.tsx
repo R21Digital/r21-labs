@@ -1,8 +1,7 @@
 import path from "node:path";
 
-import { apaLine, bibtexEntry } from "@/lib/citation";
-import { reportPath, type Report } from "@/lib/research";
-import { SITE_URL } from "@/lib/site";
+import { apaParts, bibtexEntry } from "@/lib/citation";
+import type { Report } from "@/lib/research";
 import { STRINGS } from "@/lib/strings";
 
 /**
@@ -26,7 +25,7 @@ export default function CitationBlock({
   pdfPath: string;
 }) {
   const s = STRINGS[report.lang];
-  const url = `${SITE_URL}${reportPath(report)}`;
+  const apa = apaParts(report);
 
   return (
     <section
@@ -39,17 +38,13 @@ export default function CitationBlock({
       >
         {s.citeThis}
       </h2>
-      <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-        {report.author}. <span className="text-ink">{report.title}</span>. R21 Labs,{" "}
-        <time dateTime={report.publishedOn} className="tabular">
-          {report.publishedOn}
-        </time>
-        .{" "}
-        <a href={url} className={linkClass}>
-          {url}
+      {/* One citation, in APA: the same text a reader copies, with the URL as a link. */}
+      <p className="mt-3 break-words text-sm leading-relaxed text-ink-muted">
+        {apa.text}{" "}
+        <a href={apa.url} className={linkClass}>
+          {apa.url}
         </a>
       </p>
-      <p className="mt-3 break-words text-sm leading-relaxed text-ink-muted">{apaLine(report)}</p>
       <details className="mt-3">
         <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-widest text-ink-dim hover:text-ink">
           {s.bibtex}

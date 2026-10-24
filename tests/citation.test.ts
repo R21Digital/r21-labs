@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { apaLine, bibtexEntry } from "@/lib/citation";
+import { apaLine, apaParts, bibtexEntry, parseAuthor } from "@/lib/citation";
 import type { Report } from "@/lib/research";
 
 const report: Report = {
@@ -36,12 +36,52 @@ describe("citation text", () => {
     expect(entry).toContain("month = oct,");
   });
 
-  it("writes the APA line with the raw title and the Spanish URL for a Spanish report", () => {
+  it("splits the author into person and organization in BibTeX", () => {
+    const entry = bibtexEntry(report);
+    expect(entry).toContain("author = {Jimenez, Carlos},");
+    expect(entry).toContain("organization = {R21 Digital},");
+    expect(entry).not.toContain("Carlos Jimenez, R21 Digital");
+  });
+
+  it("writes the APA line with the person as Family, I. and the raw title", () => {
     expect(apaLine(report)).toBe(
-      "Carlos Jimenez, R21 Digital (2026, October 5). R&D in AI_crawlers. R21 Labs. https://r21labs.com/research/ai-crawlers",
+      "Jimenez, C. (2026, October 5). R&D in AI_crawlers. R21 Labs. https://r21labs.com/research/ai-crawlers",
     );
-    expect(apaLine({ ...report, lang: "es" })).toContain(
-      "https://r21labs.com/es/research/ai-crawlers",
+  });
+
+  it("adds no full stop after a title that ends in ? or !", () => {
+    const question = { ...report, title: "How many sites block AI crawlers?" };
+    expect(apaLine(question)).toBe(
+      "Jimenez, C. (2026, October 5). How many sites block AI crawlers? R21 Labs. https://r21labs.com/research/ai-crawlers",
     );
+    expect(apaLine({ ...report, title: "Blocked!" })).toContain("Blocked! R21 Labs.");
+    expect(apaLine(question)).not.toContain("?.");
+  });
+
+  it("uses a Spanish APA date and the Spanish URL on a Spanish report", () => {
+    const es = {
+      ...report,
+      lang: "es" as const,
+      publishedOn: "2026-11-10",
+      title: "¿Cuántos sitios bloquean a los bots de IA?",
+    };
+    expect(apaLine(es)).toBe(
+      "Jimenez, C. (2026, 10 de noviembre). ¿Cuántos sitios bloquean a los bots de IA? R21 Labs. https://r21labs.com/es/research/ai-crawlers",
+    );
+    expect(apaParts(es)).toEqual({
+      text: "Jimenez, C. (2026, 10 de noviembre). ¿Cuántos sitios bloquean a los bots de IA? R21 Labs.",
+      url: "https://r21labs.com/es/research/ai-crawlers",
+    });
+  });
+
+  it("parses authors with and without an organization", () => {
+    expect(parseAuthor("Carlos Jimenez, R21 Digital")).toEqual({
+      family: "Jimenez",
+      given: ["Carlos"],
+      organization: "R21 Digital",
+    });
+    expect(parseAuthor("Ana María Rivera")).toEqual({ family: "Rivera", given: ["Ana", "María"] });
+    expect(apaLine({ ...report, author: "Ana María Rivera" })).toMatch(/^Rivera, A\. M\. \(2026/);
+    expect(bibtexEntry({ ...report, author: "Ana María Rivera" })).not.toContain("organization");
   });
 });

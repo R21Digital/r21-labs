@@ -3,7 +3,7 @@ import path from "node:path";
 import matter from "gray-matter";
 
 import { checkResearchCompleteness } from "./guards/research-completeness";
-import { checkResearchDenylist } from "./guards/research-denylist";
+import { checkResearchDenylist, parseDenylist, type Denylist } from "./guards/research-denylist";
 import { checkResearchNumbers } from "./guards/research-numbers";
 import { checkResearchPairing } from "./guards/research-pairing";
 import { isIsoDate } from "./schema";
@@ -204,31 +204,49 @@ export function readReportStats(report: Report): { labels: string[] } | null {
   return { labels };
 }
 
-/** SHA-256 hashes from `data/denylist.sha256`. Empty when the file is absent. */
-export function readReportDenylist(report: Report): Set<string> {
+/**
+ * HMAC-SHA256 hashes from `data/denylist.sha256`. Empty when the file is absent;
+ * the guard decides whether absence is allowed. A line that is not exactly 64
+ * lowercase hex characters is reported by line number, never by content.
+ */
+export function readReportDenylist(report: Report): Denylist {
   const raw = readDataFile(report, "denylist.sha256") ?? "";
-  return new Set(
-    raw
-      .split(/\r?\n/)
-      .map((line) => line.trim().toLowerCase())
-      .filter((line) => line !== ""),
-  );
+  return parseDenylist(raw);
 }
 
-/** The data text a published report could leak a domain through. */
+/**
+ * The data text a published report could leak a domain through: every file it
+ * offers for download (`dataFiles`, stats.json included), plus METHOD.md and
+ * results.csv whether or not they are listed. A path outside the report folder
+ * is skipped here; the completeness guard reports it.
+ */
 export function readReportDataText(report: Report): string {
-  return ["METHOD.md", "results.csv"].map((name) => readDataFile(report, name) ?? "").join("\n");
+  const files = new Set(
+    ["data/METHOD.md", "data/results.csv", ...report.dataFiles].map((file) =>
+      path.resolve(report.dir, file),
+    ),
+  );
+  const texts: string[] = [];
+  for (const file of files) {
+    const relative = path.relative(report.dir, file);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) continue;
+    if (fs.existsSync(file) && fs.statSync(file).isFile()) texts.push(fs.readFileSync(file, "utf8"));
+  }
+  return texts.join("\n");
 }
 
 /**
  * Publishing guards for research. Takes the published reports of ALL languages
  * so pairing can see both twins. Returns error strings; empty means clean.
  */
-export function runResearchGuards(reports: Report[]): string[] {
+export function runResearchGuards(
+  reports: Report[],
+  denylistKey: string | undefined = process.env.RESEARCH_DENYLIST_KEY,
+): string[] {
   return [
     ...checkResearchCompleteness(reports),
     ...checkResearchNumbers(reports, readReportStats),
-    ...checkResearchDenylist(reports, readReportDenylist, readReportDataText),
+    ...checkResearchDenylist(reports, readReportDenylist, readReportDataText, denylistKey),
     ...checkResearchPairing(reports),
   ];
 }

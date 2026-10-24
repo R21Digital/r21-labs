@@ -10,13 +10,18 @@
  *
  * Only files named in `dataFiles` are copied: a draft CSV or a denylist sitting
  * in the report's `data/` folder never reaches `public/`.
+ *
+ * Also exits 1 when a PDF sits under `public/research/<slug>/` for a slug with
+ * no published report (see `strayResearchPdfs`). PDF freshness is NOT checked
+ * here: regenerating a PDF needs a finished build, so a freshness check in
+ * prebuild would block the very build that fixes it. That check is in
+ * tests/research-pdf.test.ts.
  */
 import fs from "node:fs";
 import path from "node:path";
 
 import { getPublishedReports } from "../lib/research";
-
-const PUBLIC_DIR = path.join(process.cwd(), "public", "research");
+import { PUBLIC_RESEARCH_DIR as PUBLIC_DIR, strayResearchPdfs } from "../lib/research-files";
 
 // Rebuilt from scratch each run so a file removed from `dataFiles` is removed
 // from the site too.
@@ -25,6 +30,21 @@ for (const entry of fs.existsSync(PUBLIC_DIR) ? fs.readdirSync(PUBLIC_DIR) : [])
 }
 
 const reports = getPublishedReports("en");
+
+// A PDF in public/ is served whatever the report's status says. One left for a
+// draft, or behind a report that went back to draft or was deleted, would
+// publish it on this deploy, so the build stops here.
+const strays = strayResearchPdfs(new Set(reports.map((report) => report.slug)), PUBLIC_DIR);
+if (strays.length > 0) {
+  console.error(
+    `\nPDFs for UNPUBLISHED research reports in public/research (${strays.length}):\n  - ` +
+      `${strays.join("\n  - ")}\n\n` +
+      `public/ is served whatever a report's status says. Delete these files (and their ` +
+      `.pdf.json manifests), or publish the report in both languages.\n`,
+  );
+  process.exit(1);
+}
+
 const missing: string[] = [];
 let copied = 0;
 

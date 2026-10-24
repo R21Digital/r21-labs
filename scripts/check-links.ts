@@ -7,7 +7,12 @@
  * same link. Adversarial review 2026-08-20.
  */
 import { readEntriesUnguarded } from "../lib/content";
-import { checkLinks, deadInternalLinks } from "../lib/guards/links";
+import {
+  checkUrls,
+  deadInternalLinks,
+  entryLinkTargets,
+  researchLinkTargets,
+} from "../lib/guards/links";
 import { getPublishedReports, reportPath } from "../lib/research";
 
 /**
@@ -17,8 +22,10 @@ import { getPublishedReports, reportPath } from "../lib/research";
  */
 const STATIC_PATHS = ["/suggest", "/contact", "/blog", "/research", "/es/research"];
 
+const PUBLISHED_REPORTS = [...getPublishedReports("en"), ...getPublishedReports("es")];
+
 // A catalog entry may link to a published report, in either language.
-const REPORT_PATHS = [...getPublishedReports("en"), ...getPublishedReports("es")].map(reportPath);
+const REPORT_PATHS = PUBLISHED_REPORTS.map(reportPath);
 
 const entries = readEntriesUnguarded();
 const published = entries.filter((entry) => entry.status === "published");
@@ -34,7 +41,12 @@ if (brokenInternal.length > 0) {
   process.exit(1);
 }
 
-const { dead, indeterminate } = await checkLinks(entries);
+// Published research bodies (both languages) cite their sources inline; those
+// links go through the same checker. Drafts never reach this list.
+const { dead, indeterminate } = await checkUrls([
+  ...entryLinkTargets(entries),
+  ...researchLinkTargets(PUBLISHED_REPORTS),
+]);
 
 if (indeterminate.length > 0) {
   console.warn(
@@ -51,5 +63,6 @@ if (dead.length > 0) {
 }
 
 console.log(
-  `link check: ${published.length} published entr${published.length === 1 ? "y" : "ies"}, no dead links`,
+  `link check: ${published.length} published entr${published.length === 1 ? "y" : "ies"} and ` +
+    `${PUBLISHED_REPORTS.length} published research page${PUBLISHED_REPORTS.length === 1 ? "" : "s"}, no dead links`,
 );

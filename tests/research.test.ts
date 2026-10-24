@@ -1,5 +1,5 @@
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getPublishedReports,
@@ -17,7 +17,11 @@ const LANG_MISMATCH = path.join(FIXTURES, "lang-mismatch");
 const MISSING = path.join(FIXTURES, "does-not-exist");
 
 describe("research reader", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("reads a valid bilingual report and returns only the asked language", () => {
+    // The valid fixture ships a denylist, so the guard needs the key.
+    vi.stubEnv("RESEARCH_DENYLIST_KEY", "test-denylist-key");
     const en = getPublishedReports("en", VALID);
     const es = getPublishedReports("es", VALID);
     expect(en.map((r) => r.slug)).toEqual(["census"]);

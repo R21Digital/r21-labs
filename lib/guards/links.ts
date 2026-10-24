@@ -75,13 +75,13 @@ export function outboundUrls(entry: Entry): string[] {
  * entry goes back to draft, and a page that still renders now links into a 404.
  * Those are validated against the published set rather than fetched.
  */
-export function bodyLinks(entry: Entry): { internal: string[]; external: string[] } {
+export function bodyLinks(source: { body: string }): { internal: string[]; external: string[] } {
   const internal: string[] = [];
   const external: string[] = [];
 
   // Markdown inline links. Deliberately not a markdown parser: the bodies are
   // hand-written MDX and this only has to find `](...)`.
-  for (const [, href] of entry.body.matchAll(/\]\(\s*([^)\s]+)/g)) {
+  for (const [, href] of source.body.matchAll(/\]\(\s*([^)\s]+)/g)) {
     if (href.startsWith("http://") || href.startsWith("https://")) external.push(href);
     else if (href.startsWith("/")) internal.push(href.split("#")[0]);
   }
@@ -124,18 +124,50 @@ export interface LinkReport {
 /** 404/410 mean the resource is gone. Everything else is the network talking. */
 const DEAD_STATUSES = new Set([404, 410]);
 
+/** One outbound URL and the file that claims it. */
+export interface LinkTarget {
+  url: string;
+  filePath: string;
+}
+
+/** Every outbound URL of every PUBLISHED catalog entry. */
+export function entryLinkTargets(entries: Entry[]): LinkTarget[] {
+  return entries
+    .filter((entry) => entry.status === "published")
+    .flatMap((entry) => outboundUrls(entry).map((url) => ({ url, filePath: entry.filePath })));
+}
+
+/**
+ * Outbound links written in the body of every PUBLISHED research report, in
+ * whichever language it is. A report cites its sources inline, and those
+ * citations are its evidence, so they get the same check as a catalog entry's.
+ * Drafts are skipped for the same reasons as draft entries. `filePath` is
+ * prefixed with `research/` so the error points at the right tree.
+ */
+export function researchLinkTargets(
+  reports: { body: string; filePath: string; status: string }[],
+): LinkTarget[] {
+  return reports
+    .filter((report) => report.status === "published")
+    .flatMap((report) =>
+      bodyLinks(report).external.map((url) => ({ url, filePath: `research/${report.filePath}` })),
+    );
+}
+
 export async function checkLinks(
   entries: Entry[],
   options: LinkCheckOptions = {},
 ): Promise<LinkReport> {
+  return checkUrls(entryLinkTargets(entries), options);
+}
+
+/** The network half of the guard, for any list of targets. Each URL is requested once. */
+export async function checkUrls(
+  targets: LinkTarget[],
+  options: LinkCheckOptions = {},
+): Promise<LinkReport> {
   const { timeoutMs = 10_000, fetchImpl = fetch, retries = 2 } = options;
   const report: LinkReport = { dead: [], indeterminate: [] };
-
-  const targets = entries
-    .filter((entry) => entry.status === "published")
-    .flatMap((entry) =>
-      outboundUrls(entry).map((url) => ({ url, filePath: entry.filePath })),
-    );
 
   const seen = new Map<string, string[]>();
   for (const { url, filePath } of targets) {

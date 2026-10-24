@@ -10,6 +10,8 @@ import type { Report } from "../research";
  * shape, so this guard stands on its own when called with hand-built reports.
  * A measurement must describe its method; a field note must name its sources.
  * Every file the front matter lists as data has to exist inside the report folder.
+ * When data/stats.json carries a top-level `n`, `sampleSize` must equal it, so
+ * the denominator printed in the byline is the one the figures use.
  */
 
 const HEADINGS = {
@@ -26,6 +28,21 @@ function hasHeading(body: string, title: string): boolean {
       const match = /^##\s+(.+?)\s*#*\s*$/.exec(line);
       return match !== null && match[1].toLowerCase() === wanted;
     });
+}
+
+/**
+ * The top-level `n` of `data/stats.json`, or null when there is no stats file,
+ * no numeric `n`, or the file does not parse (the numbers guard reports that).
+ */
+function topLevelN(report: Report): number | null {
+  const file = path.join(report.dir, "data", "stats.json");
+  if (!fs.existsSync(file)) return null;
+  try {
+    const n = (JSON.parse(fs.readFileSync(file, "utf8")) as { n?: unknown } | null)?.n;
+    return typeof n === "number" ? n : null;
+  } catch {
+    return null;
+  }
 }
 
 function isAbsoluteLike(file: string): boolean {
@@ -47,6 +64,14 @@ export function checkResearchCompleteness(reports: Report[]): string[] {
         report.kind === "measurement"
           ? `a measurement needs a \`## ${heading}\` heading describing how it was measured`
           : `a field note needs a \`## ${heading}\` heading listing its sources`,
+      );
+    }
+
+    const statsN = topLevelN(report);
+    if (statsN !== null && report.sampleSize !== statsN) {
+      fail(
+        `\`sampleSize\` is ${report.sampleSize ?? "missing"} but data/stats.json says n = ${statsN}; ` +
+          `the headline denominator must match the data`,
       );
     }
 

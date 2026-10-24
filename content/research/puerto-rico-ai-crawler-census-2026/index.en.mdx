@@ -1,0 +1,185 @@
+---
+title: "How many Puerto Rico business websites block AI crawlers?"
+status: draft
+lang: en
+kind: measurement
+author: "Carlos Jimenez, R21 Digital"
+pair: index.es.mdx
+issue: 1
+measuredOn: 2026-10-22
+sampleSize: 246
+summary: "Of 246 Puerto Rico business websites checked in October 2026, 8 had robots.txt rules blocking at least one of eight AI crawlers, while 29 refused or challenged an openly identified research visitor."
+dataFiles:
+  - data/results.csv
+  - data/stats.json
+  - data/build_stats.py
+  - data/METHOD.md
+---
+
+## The question
+
+It is a claim we have heard, often tied to a change Cloudflare made in 2025: since Cloudflare began blocking AI crawlers by default, businesses are shutting ChatGPT out. The Cloudflare part is true. On July 1, 2025, Cloudflare [announced](https://www.cloudflare.com/press/press-releases/2025/cloudflare-just-changed-how-ai-crawlers-scrape-the-internet-at-large/) that it would block AI crawlers that reach content without permission, by default, and that every new domain on its network would be asked whether to let them in. The rest is a claim about what businesses do, and we had not seen anyone check it for Puerto Rico. This census checks it in robots.txt and in how servers answer an identified visitor; blocking at Cloudflare's network is a separate mechanism it cannot see (see the Cloudflare section below).
+
+So we asked a question we could measure: how many Puerto Rico business websites tell AI crawlers to stay out?
+
+## Bottom line
+
+Among the 246 Puerto Rico business websites we checked, robots.txt files show very few shutting AI out. We found a block on at least one of eight well-known AI crawlers at 8 sites (3.3%), and a block on OAI-SearchBot, the crawler behind ChatGPT search, at 4 (1.6%). More sites, 29 (11.8%), refused or challenged our openly identified research visitor at the homepage, a reminder that a server can turn automated visitors away without anyone writing a rule about AI.
+
+Those block counts are the blocks we could see. For 31 of the 246 sites we could not read the robots.txt rules at all: 22 refused the request with a 403, and 9 gave another answer (3 redirects we did not follow, 2 conflict errors and 4 server errors). They stay in the denominator, and any rules they have are unknown to us.
+
+## Method
+
+We drew the sample from two public lists:
+
+- **OpenStreetMap**, through the Overpass API: every Puerto Rico place with a website and a business tag (shops, offices, health care, crafts, and some food, lodging and leisure tags). Data as of 2026-10-22T20:19Z. Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), Open Database License.
+- **The Puerto Rico Chamber of Commerce [“New Members” page](https://camarapr.org/new-members/)**, list dated 2026-05-27. It was the only public member list we could find.
+
+We kept one row per domain and removed social media pages, shared hosting addresses, government and school domains, and domains that appear on five or more map entries, which are likely chains. From the Chamber page we also removed the Chamber's own domains and 26 large corporate or government sites. That left 908 domains: 211 from the Chamber page and 697 found only in OpenStreetMap. We drew 150 at random from each list.
+
+On October 22, 2026, between 20:24 and 20:46 UTC, we requested each site's `/robots.txt` and then its homepage. Requests went one at a time, at least 1.2 seconds apart, and every one identified itself as `R21Digital-research/1.0 (+https://r21digital.com)`. We skipped the homepage on the three sites whose robots.txt closes the whole site to all crawlers.
+
+We matched crawlers to robots.txt groups the way [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309) says a crawler should: a crawler follows the group that names it, or the `*` group if none does. We count a crawler as blocked when its rules close the site root, `/`. We did not follow redirects on the robots.txt request, although RFC 9309 says crawlers should; the 3 sites that answered with a redirect are counted among the 9 other answers below. The eight crawlers checked are GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot and Bytespider.
+
+We did not visit any site pretending to be GPTBot or any other company's crawler. Posing as someone else's bot is not honest research. That means this report sees what a site's robots.txt says to each crawler, and how its server treats a visitor that tells the truth about who it is. It does not see what a firewall does when the real GPTBot arrives.
+
+The ranges in the tables are 95 percent confidence intervals (Wilson method). They show how far a figure could move between one random draw from these two lists and another; they say nothing about businesses that are on neither list. Because we drew 150 sites from each list, the smaller Chamber list carries more weight in the pooled figures than its share of the frame, and it makes up 141 of the 246 sites that answered. The two lists come out close, for example 3.5% of Chamber sites and 2.9% of OpenStreetMap sites block an AI crawler, so the weighting is unlikely to move the headline much.
+
+R21 Digital builds and manages websites for Puerto Rico businesses; none of the sites we build or host for clients appeared in the sample.
+
+## Sample
+
+| Step | Sites |
+|---|---|
+| Drawn at random (150 per list) | 300 |
+| Removed after the draw as clearly not local businesses | 29 |
+| Retained | 271 |
+| No answer at all (23 DNS failures, 1 TLS error, 1 connection reset) | 25 |
+| Answered | 246 |
+
+What the 246 robots.txt requests returned:
+
+| Result | Sites |
+|---|---|
+| A robots.txt with crawler rules | 170 |
+| No usable robots.txt (none, an HTML page, an empty file, or no crawler rules) | 45 |
+| Refused with a 403 | 22 |
+| Another status (redirects, conflicts, server errors) | 9 |
+
+Every percentage below uses the 246 sites that answered unless it says otherwise. The 29 removed sites are left out of every figure and out of the published data. For the 31 sites in the last two rows we have no rules to read, so they count as not blocking in the figures below, whatever their real rules are. The four rows add up to the 246.
+
+## Findings
+
+### Very few sites block AI crawlers
+
+| Measure | Sites | Share | Range |
+|---|---|---|---|
+| Blocks at least one of the eight AI crawlers | 8 | 3.3% | 1.7–6.3% |
+| … with a rule that names an AI crawler | 5 | 2.0% | 0.9–4.7% |
+| … with only `User-agent: *` and `Disallow: /`, which on these sites shuts out search engines too | 3 | 1.2% | 0.4–3.5% |
+| Blocks GPTBot (OpenAI's training crawler) | 7 | 2.8% | 1.4–5.8% |
+| Blocks OAI-SearchBot (ChatGPT search) | 4 | 1.6% | 0.6–4.1% |
+| Blocks GPTBot but not OAI-SearchBot | 3 | 1.2% | 0.4–3.5% |
+
+That is about 3 in 100. For three of those eight sites the block is not specific to AI. Each of their robots.txt files has a single group, `User-agent: *` with `Disallow: /`, and nothing else, so it tells every crawler to stay out, Google's and Bing's included. All three answered our robots.txt request; we did not request their homepages, as the file asks. From outside we cannot tell whether the block is a choice or a leftover from when the site was built.
+
+Looking only at the 170 sites with crawler rules does not change the picture: 5 (2.9%) name an AI crawler to block it, and 3 (1.8%) block everything.
+
+### ChatGPT search is blocked less often than training
+
+OpenAI runs separate crawlers for separate jobs. GPTBot collects material for training models; OAI-SearchBot finds pages for ChatGPT's search results. OpenAI's [crawler documentation](https://developers.openai.com/api/docs/bots) says each robots.txt setting is independent of the others, so blocking one does not block the other.
+
+The sites in our sample treat them differently. Seven block GPTBot; four block OAI-SearchBot. Three sites block GPTBot but not OAI-SearchBot. Two of them carry Cloudflare's managed robots.txt section; on these two sites it lists training crawlers such as GPTBot, ClaudeBot and CCBot and does not list OAI-SearchBot or ChatGPT-User. The third has its own list of about a dozen AI crawlers, and OAI-SearchBot is not on it.
+
+Of the four sites that block OAI-SearchBot, three do it through a blanket `Disallow: /`. Only one site names OAI-SearchBot in a rule: a retailer that blocks all eight crawlers by name.
+
+| Crawler | Blocked | Blocked by a rule naming it |
+|---|---|---|
+| GPTBot | 7 (2.8%) | 4 |
+| ChatGPT-User | 4 (1.6%) | 1 |
+| OAI-SearchBot | 4 (1.6%) | 1 |
+| ClaudeBot | 7 (2.8%) | 4 |
+| PerplexityBot | 5 (2.0%) | 2 |
+| Google-Extended | 7 (2.8%) | 4 |
+| CCBot | 7 (2.8%) | 4 |
+| Bytespider | 8 (3.3%) | 5 |
+
+### Some sites name AI crawlers only to allow them
+
+Fifteen sites (6.1%) mention at least one of the eight crawlers in robots.txt. Ten of them, 4.1% of all sites, name the crawlers only to allow them in, among them a hotel with an explicit allow list.
+
+### What turned up more often than a block
+
+| Measure | Sites | Share | Range |
+|---|---|---|---|
+| No robots.txt at all (404) | 33 | 13.4% | 9.7–18.2% |
+| No usable robots.txt (none, an HTML page, an empty file, or no crawler rules) | 45 | 18.3% | 14.0–23.6% |
+| robots.txt answered 403 to our visitor | 22 | 8.9% | 6.0–13.2% |
+| Homepage answered 403 or 429, or showed a bot challenge, to our visitor | 29 | 11.8% | 8.3–16.4% |
+
+A missing robots.txt is not a block. Those 33 sites have no robots.txt restriction on any crawler. Whether a crawler actually gets in still depends on how the server and any firewall treat it, which we did not test for AI crawlers; one of the 33 refused our own visitor at the homepage.
+
+The refusals are a different matter. Twenty-nine homepages turned away a visitor that named itself and linked to who we are, and all 22 sites that refused our robots.txt request also refused the homepage. This does not prove those sites block ChatGPT. Our visitor is not OpenAI's, and a firewall can treat the two differently. What it shows is that server protection, which can be a host's or a CDN's default or the owner's choice, can stop automated visitors without a single line in robots.txt. For an owner who wants to show up in AI search, that makes the server's behavior as worth checking as the robots.txt file. From outside we cannot tell whether anyone set it on purpose.
+
+### Cloudflare is common; its AI block is not, as far as robots.txt shows
+
+Cloudflare sits in front of 87 sites (35.4%). On many of them that is probably not the business's choice: 19 of the 23 Wix sites and all 12 Shopify sites reach us through Cloudflare, most likely because the platform serves its sites through it. Seven sites (2.8%) carry Cloudflare's managed robots.txt section, and on 2 (0.8%) that section blocks AI crawlers.
+
+That is the part of Cloudflare's AI controls we can see. Cloudflare can also block crawlers at its network, before robots.txt is read, and that kind of block only shows when the targeted crawler arrives. We did not pose as one, so this report cannot say how many of the 87 do it.
+
+### By list and by platform
+
+| Measure | Chamber of Commerce | OpenStreetMap |
+|---|---|---|
+| Retained | 146 | 125 |
+| Answered | 141 | 105 |
+| Block any AI crawler | 5 (3.5%) | 3 (2.9%) |
+| Block OAI-SearchBot | 2 (1.4%) | 2 (1.9%) |
+| No robots.txt | 17 (12.1%) | 16 (15.2%) |
+| robots.txt answered 403 | 12 (8.5%) | 10 (9.5%) |
+
+Percentages in this table use the sites that answered in each list.
+
+| Platform (best guess) | Sites | Block any AI crawler | No robots.txt | Cloudflare in front |
+|---|---|---|---|---|
+| WordPress | 77 | 2 | 5 | 13 |
+| Wix | 23 | 0 | 3 | 19 |
+| GoDaddy site builder | 17 | 0 | 1 | 6 |
+| Shopify | 12 | 0 | 0 | 12 |
+| Squarespace | 9 | 0 | 1 | 1 |
+| Webflow | 7 | 0 | 2 | 6 |
+| Next.js | 5 | 0 | 1 | 1 |
+| Custom PHP or Joomla | 2 | 1 | 0 | 1 |
+| Not identified | 94 | 5 | 20 | 28 |
+
+The counts per platform are small, so read them as a description of these sites and nothing more. All three blanket blocks, and two of the five rules naming AI crawlers, are on sites whose platform we could not identify.
+
+## How to check your own site
+
+1. **Open your robots.txt.** Type your domain followed by `/robots.txt` in a browser, for example `https://example.com/robots.txt`. If you get a "not found" page, robots.txt is not blocking anyone.
+2. **Look for a line that closes everything.** `User-agent: *` followed by `Disallow: /` tells every crawler without a group of its own to stay out, and that normally includes Google. If your homepage is live and you want customers to find it, that line is worth asking about.
+3. **Look for groups that name AI crawlers.** Search the file for `GPTBot`, `OAI-SearchBot` and `ChatGPT-User`. GPTBot is training; OAI-SearchBot is ChatGPT search. You can allow one and block the other, and a long list of blocked bots can still leave out the one you meant to stop.
+4. **Check for a section you did not write.** If the file contains `BEGIN Cloudflare Managed content`, Cloudflare added it from a setting in your account. Change it there.
+5. **Ask whoever runs your hosting or CDN.** Ask what response an automated visitor gets from your homepage, and whether any bot protection or firewall rule treats AI crawlers differently from other visitors. On Wix, Shopify and similar platforms, the platform controls that layer, so the question goes to them.
+
+## Limits
+
+- **Not a picture of all Puerto Rico.** OpenStreetMap leans toward what volunteers map (restaurants, lodging, health care, shops). The Chamber list leans toward dues-paying professional and B2B firms. Businesses with only a Facebook page are not here. The sample is split by list only, so the pooled figures describe these 246 sites, not every business on the island.
+- **Some rules are unknown.** For 31 sites we could not read robots.txt: 22 refusals (403), 3 redirects we did not follow, 2 conflicts (409) and 4 server errors. They count as not blocking, so the block figures are what we could detect. RFC 9309 does not read these answers the same way: a crawler that gets a server error must treat the whole site as closed, while one that gets a 4xx answer, as with the 22 refusals and 2 conflicts, may crawl everything.
+- **robots.txt is one layer.** Firewalls, bot protection and rate limits can block a crawler with no robots.txt line at all.
+- **The refusals were to our visitor.** A 403 to an identified research visitor is not a count of sites blocking ChatGPT or any other AI crawler.
+- **Intent is unknown.** A blanket `Disallow: /` may be deliberate. A missing robots.txt means there is no robots.txt restriction, not that every crawler gets in.
+- **One day.** One pass on October 22, 2026. Sites change.
+- **Small counts.** The blocks involve 3 to 8 sites each, so the ranges are wide. The fair way to say the headline is about 3 in 100.
+- **Platform is a guess.** It comes from headers and page markup, and 38.2% of sites could not be identified.
+
+## Data and reproduction
+
+The site-level data, and every percentage and range in the tables, are published:
+
+- [`results.csv`](/research/puerto-rico-ai-crawler-census-2026/data/results.csv): one row per retained site, 271 rows, including the 25 that did not answer. Each row has the list it came from, the platform guess, the CDN or challenge seen, the robots.txt status, the verdict for each of the eight crawlers, and the Cloudflare and named-rule columns the tables need. Sites are identified only by a salted hash. No domain, business name or URL is published.
+- [`stats.json`](/research/puerto-rico-ai-crawler-census-2026/data/stats.json): every percentage and range in this report, with its count and its denominator.
+- [`build_stats.py`](/research/puerto-rico-ai-crawler-census-2026/data/build_stats.py): the script that wrote `stats.json`. It uses only the Python standard library, and run on the published `results.csv` it gives back the same `stats.json`, byte for byte.
+- [`METHOD.md`](/research/puerto-rico-ai-crawler-census-2026/data/METHOD.md): the method note, with the column definitions.
+
+Some counts cannot come from the CSV, because they describe steps before the draw or sites that are not published: the 908-domain frame and its cleanup, the 300 drawn, the 29 removed, and the split of the 25 unreachable sites into DNS, TLS and reset failures. Those come from the method note. In `build_stats.py`, the 300 and the 29 are written in as constants.

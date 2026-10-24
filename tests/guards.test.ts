@@ -12,8 +12,10 @@ import { assertNoDrafts, publishedOnly } from "@/lib/guards/published";
 import {
   bodyLinks,
   checkLinks,
+  checkUrls,
   deadInternalLinks,
   outboundUrls,
+  researchLinkTargets,
 } from "@/lib/guards/links";
 import { checkRequiredFields } from "@/lib/guards/required-fields";
 import type { Entry } from "@/lib/schema";
@@ -269,6 +271,34 @@ describe("guard 4 — dead links", () => {
     );
     expect(called).toBe(false);
     expect(errors.dead).toEqual([]);
+  });
+
+  it("checks outbound links in PUBLISHED research bodies, both languages, never drafts", async () => {
+    const targets = researchLinkTargets([
+      {
+        status: "published",
+        filePath: "census/index.en.mdx",
+        body: "Cloudflare [announced](https://example.com/press) it. See [data](/research/census/data/stats.json).",
+      },
+      {
+        status: "published",
+        filePath: "census/index.es.mdx",
+        body: "Cloudflare lo [anunció](https://example.com/press-es).",
+      },
+      { status: "draft", filePath: "next/index.en.mdx", body: "[x](https://example.com/draft)" },
+    ]);
+    expect(targets).toEqual([
+      { url: "https://example.com/press", filePath: "research/census/index.en.mdx" },
+      { url: "https://example.com/press-es", filePath: "research/census/index.es.mdx" },
+    ]);
+
+    const errors = await checkUrls(targets, {
+      fetchImpl: async (url) =>
+        new Response(null, { status: String(url).endsWith("-es") ? 404 : 200 }),
+    });
+    expect(errors.dead).toEqual([
+      "research/census/index.es.mdx: https://example.com/press-es returned HTTP 404",
+    ]);
   });
 
   it("requests a duplicated URL only once", async () => {

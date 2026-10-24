@@ -10,19 +10,24 @@ import {
   type Report,
 } from "@/lib/research";
 import { checkResearchCompleteness } from "@/lib/guards/research-completeness";
-import { checkResearchDenylist, domainTokens } from "@/lib/guards/research-denylist";
+import {
+  checkResearchDenylist,
+  domainForms,
+  domainTokens,
+} from "@/lib/guards/research-denylist";
 import { checkResearchNumbers, figureTokens } from "@/lib/guards/research-numbers";
 import { checkResearchPairing } from "@/lib/guards/research-pairing";
 
 const FIXTURES = path.join(process.cwd(), "tests", "fixtures", "research");
 const fixture = (name: string) => path.join(FIXTURES, name);
 
-// sha256("example.org"), the hash in tests/fixtures/research/denylisted.
-const EXAMPLE_ORG_HASH = "bfabc37432958b063360d3ad6461c9c4735ae7f8edd46592a5e0f01452b2e4b5";
+// HMAC-SHA256 of "example.org" under TEST_KEY, the hash in tests/fixtures/research/denylisted.
+const TEST_KEY = "test-denylist-key";
+const EXAMPLE_ORG_HASH = "84161cf5cda647d229b39c7cd76daab40fc8ba910d700b5ae71e46507abed8b3";
 
 function runAll(dir: string): string[] {
   const published = readResearchUnguarded(dir).filter((r) => r.status === "published");
-  return runResearchGuards(published);
+  return runResearchGuards(published, TEST_KEY);
 }
 
 function esReport(body: string, overrides: Partial<Report> = {}): Report {
@@ -73,6 +78,16 @@ describe("research guards, fixtures", () => {
     expect(errors.join()).toContain(EXAMPLE_ORG_HASH.slice(0, 8));
   });
 
+  it("fails a denylisted domain inside downloadable JSON metadata, with clean prose and CSV", () => {
+    // stats.json is offered for download, so a domain in its metadata ships
+    // as surely as one in the prose. One error per language file.
+    const errors = runAll(fixture("denylisted-download"));
+    expect(errors).toHaveLength(2);
+    for (const error of errors) expect(error).toMatch(/data files/);
+    expect(errors.join().toLowerCase()).not.toContain("example.org");
+    expect(errors.join()).toContain(EXAMPLE_ORG_HASH.slice(0, 8));
+  });
+
   it("fails a published report whose twin is draft", () => {
     const errors = runAll(fixture("draft-twin"));
     expect(errors).toHaveLength(1);
@@ -97,9 +112,9 @@ describe("research guards, fixtures", () => {
   });
 
   it("runResearchGuards concatenates the four guards", () => {
-    expect(runResearchGuards(readResearchUnguarded(fixture("valid")))).toEqual([]);
+    expect(runResearchGuards(readResearchUnguarded(fixture("valid")), TEST_KEY)).toEqual([]);
     expect(
-      runResearchGuards(readResearchUnguarded(fixture("no-method"))).length,
+      runResearchGuards(readResearchUnguarded(fixture("no-method")), TEST_KEY).length,
     ).toBeGreaterThan(0);
   });
 });
@@ -202,21 +217,59 @@ describe("domainTokens", () => {
 });
 
 describe("checkResearchDenylist", () => {
+  const deny = (...hashes: string[]) => () => ({ hashes: new Set(hashes), malformedLines: [] });
+  const shipsCsv = { dataFiles: ["data/results.csv", "data/stats.json"] };
+
   it("hashes the www-stripped form too", () => {
     const errors = checkResearchDenylist(
       [esReport("Visite WWW.Example.org hoy")],
-      () => new Set([EXAMPLE_ORG_HASH]),
+      deny(EXAMPLE_ORG_HASH),
       () => "",
+      TEST_KEY,
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(/denylist/);
   });
 
+  it("catches a subdomain of a denylisted domain in the prose", () => {
+    const errors = checkResearchDenylist(
+      [esReport("Compre en https://shop.Example.org/ofertas hoy")],
+      deny(EXAMPLE_ORG_HASH),
+      () => "",
+      TEST_KEY,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/in the text/);
+    expect(errors[0]).toContain(EXAMPLE_ORG_HASH.slice(0, 8));
+    expect(errors[0].toLowerCase()).not.toContain("example.org");
+  });
+
+  it("catches a deeper subdomain in a downloadable data file", () => {
+    const errors = checkResearchDenylist(
+      [esReport("limpio")],
+      deny(EXAMPLE_ORG_HASH),
+      () => '{"labels": [], "note": "see a.shop.example.org"}',
+      TEST_KEY,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/data files/);
+  });
+
+  it("does not treat a bare public suffix as a parent domain", () => {
+    expect(domainForms("a.shop.example.org")).toEqual([
+      "a.shop.example.org",
+      "shop.example.org",
+      "example.org",
+    ]);
+    expect(domainForms("www.example.org")).toEqual(["www.example.org", "example.org"]);
+  });
+
   it("checks the title as published text", () => {
     const errors = checkResearchDenylist(
       [esReport("limpio", { title: "Qué pasa en Example.org" })],
-      () => new Set([EXAMPLE_ORG_HASH]),
+      deny(EXAMPLE_ORG_HASH),
       () => "",
+      TEST_KEY,
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(/denylist/);
@@ -225,8 +278,9 @@ describe("checkResearchDenylist", () => {
   it("checks the summary as published text", () => {
     const errors = checkResearchDenylist(
       [esReport("limpio", { summary: "Un resumen que nombra a https://example.org por error." })],
-      () => new Set([EXAMPLE_ORG_HASH]),
+      deny(EXAMPLE_ORG_HASH),
       () => "",
+      TEST_KEY,
     );
     expect(errors).toHaveLength(1);
   });
@@ -234,18 +288,83 @@ describe("checkResearchDenylist", () => {
   it("checks the data text (METHOD.md, results.csv) as well", () => {
     const errors = checkResearchDenylist(
       [esReport("limpio")],
-      () => new Set([EXAMPLE_ORG_HASH]),
+      deny(EXAMPLE_ORG_HASH),
       () => "domain\nexample.org,blocked\n",
+      TEST_KEY,
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(/data/);
   });
 
-  it("reads a CRLF denylist and ignores blank lines", () => {
+  it("fails a published measurement that ships results.csv with no denylist", () => {
+    const errors = checkResearchDenylist([esReport("limpio", shipsCsv)], deny(), () => "", TEST_KEY);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/denylist\.sha256 is missing or empty/);
+  });
+
+  it("fails a missing denylist file read from disk", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "denylist-"));
+    const report = esReport("limpio", { ...shipsCsv, dir });
+    const errors = checkResearchDenylist([report], readReportDenylist, () => "", TEST_KEY);
+    expect(errors.join()).toMatch(/missing or empty/);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not ask a field note or a report without results.csv for a denylist", () => {
+    expect(
+      checkResearchDenylist([esReport("limpio", { ...shipsCsv, kind: "field-note" })], deny(), () => "", TEST_KEY),
+    ).toEqual([]);
+    expect(checkResearchDenylist([esReport("limpio")], deny(), () => "", TEST_KEY)).toEqual([]);
+  });
+
+  it("fails a malformed denylist line by line number, without printing the line", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "denylist-"));
     fs.mkdirSync(path.join(dir, "data"));
-    fs.writeFileSync(path.join(dir, "data", "denylist.sha256"), "aaa\r\n\r\nbbb\r\n");
-    expect([...readReportDenylist(esReport("x", { dir }))]).toEqual(["aaa", "bbb"]);
+    fs.writeFileSync(
+      path.join(dir, "data", "denylist.sha256"),
+      `${EXAMPLE_ORG_HASH}\nexample.org\n${EXAMPLE_ORG_HASH.toUpperCase()}\n`,
+    );
+    const report = esReport("limpio", { ...shipsCsv, dir });
+    const errors = checkResearchDenylist([report], readReportDenylist, () => "", TEST_KEY);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/lines 2, 3 are not an HMAC-SHA256/);
+    expect(errors[0].toLowerCase()).not.toContain("example.org");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails closed when the key is missing, without hashing anything", () => {
+    for (const key of [undefined, ""]) {
+      const errors = checkResearchDenylist(
+        [esReport("Visite example.org")],
+        deny(EXAMPLE_ORG_HASH),
+        () => "",
+        key,
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatch(/RESEARCH_DENYLIST_KEY is not set/);
+    }
+  });
+
+  it("does not match a plain SHA-256 of the domain", () => {
+    const plain = "bfabc37432958b063360d3ad6461c9c4735ae7f8edd46592a5e0f01452b2e4b5";
+    expect(
+      checkResearchDenylist([esReport("Visite example.org")], deny(plain), () => "", TEST_KEY),
+    ).toEqual([]);
+  });
+
+  it("passes a valid CRLF denylist and ignores blank lines", () => {
+    const other = "a".repeat(64);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "denylist-"));
+    fs.mkdirSync(path.join(dir, "data"));
+    fs.writeFileSync(
+      path.join(dir, "data", "denylist.sha256"),
+      `${EXAMPLE_ORG_HASH}\r\n\r\n  ${other} \r\n`,
+    );
+    const report = esReport("limpio", { ...shipsCsv, dir });
+    const denylist = readReportDenylist(report);
+    expect([...denylist.hashes]).toEqual([EXAMPLE_ORG_HASH, other]);
+    expect(denylist.malformedLines).toEqual([]);
+    expect(checkResearchDenylist([report], readReportDenylist, () => "", TEST_KEY)).toEqual([]);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
@@ -269,6 +388,22 @@ describe("checkResearchCompleteness", () => {
     expect(absolute.join()).toMatch(/absolute/);
   });
 
+  it("fails a sampleSize that differs from the top-level n in stats.json", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sample-size-"));
+    fs.mkdirSync(path.join(dir, "data"));
+    fs.writeFileSync(path.join(dir, "data", "stats.json"), JSON.stringify({ n: 246, labels: [] }));
+    const report = (sampleSize?: number) => esReport("## Método\n", { dir, sampleSize });
+
+    expect(checkResearchCompleteness([report(246)])).toEqual([]);
+    expect(checkResearchCompleteness([report(245)]).join()).toMatch(/sampleSize.*n = 246/);
+    expect(checkResearchCompleteness([report()]).join()).toMatch(/sampleSize/);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not ask for a sampleSize when stats.json has no top-level n", () => {
+    expect(checkResearchCompleteness([withFiles(["data/stats.json"])])).toEqual([]);
+  });
+
   it("requires Sources / Fuentes on a field note", () => {
     const errors = checkResearchCompleteness([esReport("sin fuentes", { kind: "field-note" })]);
     expect(errors.join()).toMatch(/Fuentes/);
@@ -280,5 +415,16 @@ describe("checkResearchPairing", () => {
     const all = readResearchUnguarded(fixture("valid"));
     const broken = all.map((r) => (r.lang === "en" ? { ...r, pair: "index.fr.mdx" } : r));
     expect(checkResearchPairing(broken).join()).toMatch(/pair/);
+  });
+
+  it("fails a pair whose dataFiles differ, and passes when they match", () => {
+    const all = readResearchUnguarded(fixture("valid"));
+    expect(checkResearchPairing(all)).toEqual([]);
+    const broken = all.map((r) =>
+      r.lang === "es" ? { ...r, dataFiles: [...r.dataFiles, "data/METHOD.md"] } : r,
+    );
+    const errors = checkResearchPairing(broken);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/`dataFiles` differs/);
   });
 });
