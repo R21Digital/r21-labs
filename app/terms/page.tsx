@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { OG_IMAGE, ORGANIZATION } from "@/lib/site";
+import { OG_PAGE, ORGANIZATION } from "@/lib/site";
 
 /**
  * Terms of use.
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     description:
       "The terms for using R21 Labs, including automated access, reverse engineering and AI tools.",
     url: "/terms",
-    ...OG_IMAGE,
+    ...OG_PAGE,
   },
 };
 
