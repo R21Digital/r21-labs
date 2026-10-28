@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import FrostedCard from "@/components/brand/FrostedCard";
 import SubmitForm from "@/components/site/SubmitForm";
-import { OG_IMAGE, ORGANIZATION } from "@/lib/site";
+import { OG_PAGE, ORGANIZATION } from "@/lib/site";
 
 /**
  * Work with R21 — scoped to what this site is about.
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     description:
       "Talk to R21 Digital about MCP servers, agent tooling and custom software.",
     url: "/contact",
-    ...OG_IMAGE,
+    ...OG_PAGE,
   },
 };
 

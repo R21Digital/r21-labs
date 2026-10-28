@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import Wordmark from "@/components/brand/Wordmark";
-import { OG_IMAGE } from "@/lib/site";
+import { OG_PAGE } from "@/lib/site";
 import { getPublishedNotes, notePath } from "@/lib/notes";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     description:
       "First-party notes from R21 about tools it actually runs. Not the catalog.",
     url: "/blog",
-    ...OG_IMAGE,
+    ...OG_PAGE,
   },
 };
 

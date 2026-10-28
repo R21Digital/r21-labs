@@ -56,6 +56,18 @@ export const SITE_DESCRIPTION =
 export const OG_IMAGE = { images: ["/opengraph-image"] };
 
 /**
+ * The OpenGraph fields a page-level block loses when it replaces the root one:
+ * `siteName` and `type`. Without them /blog, /contact, /suggest and /terms
+ * shared with no site name and an unstated type. Spread this instead of
+ * OG_IMAGE on any non-entry page that sets `openGraph`.
+ */
+export const OG_PAGE = {
+  type: "website" as const,
+  siteName: SITE_NAME,
+  ...OG_IMAGE,
+};
+
+/**
  * The legal entity behind the site — used for Organization structured data.
  *
  * 🔴 `sameAs` added 2026-08-24 after a GEO audit of this site with R21's own
@@ -140,9 +152,27 @@ function openingSentence(entry: Entry): string | undefined {
     .trim();
 }
 
-function clamp(text: string): string {
+/** Words a snippet must not end on: "…pulls current docs into a…" reads as a defect. */
+const DANGLING = /\s+(a|an|the|of|to|and|or|in|into|on|for|with|by|any|that|than|is|are|was|were)$/i;
+
+/**
+ * Cut at a sentence end when one falls in the window, otherwise at a word
+ * boundary that does not leave a dangling article or preposition. Exported for
+ * tests/descriptions.test.ts.
+ */
+export function clamp(text: string): string {
   if (text.length <= MAX_LENGTH) return text;
-  return `${text.slice(0, MAX_LENGTH - 1).replace(/\s+\S*$/, "")}…`;
+  const window = text.slice(0, MAX_LENGTH);
+  const sentenceEnd = Math.max(
+    window.lastIndexOf(". "),
+    window.lastIndexOf("? "),
+    window.lastIndexOf("! "),
+  );
+  if (sentenceEnd >= 60) return window.slice(0, sentenceEnd + 1);
+
+  let cut = text.slice(0, MAX_LENGTH - 1).replace(/\s+\S*$/, "");
+  while (DANGLING.test(cut)) cut = cut.replace(DANGLING, "");
+  return `${cut.replace(/[,;:\s-]+$/, "")}…`;
 }
 
 export function entryDescription(entry: Entry): string {
@@ -156,6 +186,10 @@ export function entryDescription(entry: Entry): string {
     // Otherwise extend with the entry's own opening line. Composed rather than
     // padded: both halves are text somebody wrote about THIS entry, so the
     // result stays unique, which `tests/discovery.test.ts` asserts.
+    // Skipped when the opening restates the stated line (its first two words
+    // already open it), which otherwise reads as the same sentence twice.
+    const lead = opening.split(" ").slice(0, 2).join(" ").toLowerCase().replace(/[^a-z0-9 ]/g, "");
+    if (stated.toLowerCase().replace(/[^a-z0-9 ]/g, "").includes(lead)) return clamp(stated);
     return clamp(`${stated} ${opening}`);
   }
 

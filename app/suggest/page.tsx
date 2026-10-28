@@ -4,7 +4,7 @@ import Link from "next/link";
 import FrostedCard from "@/components/brand/FrostedCard";
 import SubmitForm from "@/components/site/SubmitForm";
 import { getPublishedEntries } from "@/lib/content";
-import { OG_IMAGE } from "@/lib/site";
+import { OG_PAGE } from "@/lib/site";
 
 /**
  * Suggest a tool.
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     description:
       "Tell R21 Labs about an open-source or source-available tool worth testing.",
     url: "/suggest",
-    ...OG_IMAGE,
+    ...OG_PAGE,
   },
 };
 

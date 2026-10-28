@@ -38,15 +38,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .sort()
     .at(-1);
 
+  // A note is site content too: without this the homepage and /blog kept a
+  // lastmod older than the newest page they link to.
+  const newestNote = notes.map((note) => note.publishedOn).sort().at(-1);
+  const newestAny = [newest, newestNote].filter(Boolean).sort().at(-1);
+
   return [
     {
       url: SITE_URL,
-      lastModified: newest ? new Date(`${newest}T00:00:00Z`) : undefined,
+      lastModified: newestAny ? new Date(`${newestAny}T00:00:00Z`) : undefined,
       changeFrequency: "weekly",
       priority: 1,
     },
     ...STATIC_PAGES.map((path) => ({
       url: `${SITE_URL}${path}`,
+      ...(path === "/blog" && newestNote
+        ? { lastModified: new Date(`${newestNote}T00:00:00Z`) }
+        : {}),
       changeFrequency: "yearly" as const,
       priority: 0.4,
     })),
