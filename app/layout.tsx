@@ -11,7 +11,9 @@ import { ORGANIZATION, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site"
  *  (fleet audit: r21labs had no analytics at all). Own property, so the agency site's data stays its own.
  *  Loaded on the production deployment only, so previews and local builds don't count as visits. */
 export const GA_ID = "G-FBR3V4Z84G";
-const loadAnalytics = process.env.VERCEL_ENV === "production";
+// DEPLOY_ENV is the Cloudflare equivalent; `cf:build` pins it at build time.
+const loadAnalytics =
+  process.env.VERCEL_ENV === "production" || process.env.DEPLOY_ENV === "production";
 
 /* Type families are brand-locked (brand-r21 "Midnight AI"):
    Montserrat for headings, Open Sans for body, JetBrains Mono for eyebrows,
@@ -113,9 +115,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Footer />
         {loadAnalytics && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            {/* Hostname gate at runtime: the same build also serves the workers.dev
+                preview and the vercel.app alias, and neither may report to the live
+                GA property. */}
             <Script id="ga4" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","${GA_ID}");`}
+              {`if(/^(www\\.)?r21labs\\.com$/.test(location.hostname)){var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}";document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","${GA_ID}");}`}
             </Script>
           </>
         )}

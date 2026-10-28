@@ -108,7 +108,7 @@ export function isEmailConfigured(): boolean {
  * `NODE_ENV=production` on every laptop, and that build must not fail.
  */
 export function isDeployed(): boolean {
-  return env("VERCEL_ENV") !== undefined;
+  return env("VERCEL_ENV") !== undefined || env("DEPLOY_ENV") !== undefined;
 }
 
 let client: SESv2Client | null = null;
