@@ -115,9 +115,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Footer />
         {loadAnalytics && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            {/* Hostname gate at runtime: the same build also serves the workers.dev
+                preview and the vercel.app alias, and neither may report to the live
+                GA property. */}
             <Script id="ga4" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","${GA_ID}");`}
+              {`if(/^(www\\.)?r21labs\\.com$/.test(location.hostname)){var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}";document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","${GA_ID}");}`}
             </Script>
           </>
         )}
