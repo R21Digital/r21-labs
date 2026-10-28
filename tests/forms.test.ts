@@ -26,6 +26,7 @@ const ENV_KEYS = [
   "ALERT_FROM",
   "ALERT_TO",
   "VERCEL_ENV",
+  "DEPLOY_ENV",
 ] as const;
 
 function withEnv(values: Partial<Record<(typeof ENV_KEYS)[number], string>>) {

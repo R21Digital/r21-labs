@@ -11,7 +11,9 @@ import { ORGANIZATION, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site"
  *  (fleet audit: r21labs had no analytics at all). Own property, so the agency site's data stays its own.
  *  Loaded on the production deployment only, so previews and local builds don't count as visits. */
 export const GA_ID = "G-FBR3V4Z84G";
-const loadAnalytics = process.env.VERCEL_ENV === "production";
+// DEPLOY_ENV is the Cloudflare equivalent; `cf:build` pins it at build time.
+const loadAnalytics =
+  process.env.VERCEL_ENV === "production" || process.env.DEPLOY_ENV === "production";
 
 /* Type families are brand-locked (brand-r21 "Midnight AI"):
    Montserrat for headings, Open Sans for body, JetBrains Mono for eyebrows,

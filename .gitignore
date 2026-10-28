@@ -44,3 +44,8 @@ next-env.d.ts
 
 # Private design compositions
 /.design/
+
+# cloudflare (OpenNext build output + wrangler state)
+.open-next/
+.wrangler/
+.dev.vars*

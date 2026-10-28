@@ -11,16 +11,20 @@
     "check:links": "vite-node scripts/check-links.ts",
     "logos": "vite-node scripts/fetch-logos.ts",
     "prebuild": "npm run check:links",
-    "verify": "npm run build && npm run test"
+    "verify": "npm run build && npm run test",
+    "preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
+    "cf:build": "cross-env DEPLOY_ENV=production NEXT_PUBLIC_SITE_URL=https://r21labs.com opennextjs-cloudflare build",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.1116.0",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
-    "@next/mdx": "^16.3.8",
+    "@next/mdx": "^16.4.3",
     "@types/mdx": "^2.0.14",
     "gray-matter": "^4.0.3",
-    "next": "16.3.8",
+    "next": "16.4.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
@@ -28,15 +32,18 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.14",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-node": "^6.0.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.155.0"
   }
 }
