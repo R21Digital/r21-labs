@@ -1,0 +1,88 @@
+---
+title: "When Not to Put API Keys in Prompts (and What to Do Instead)"
+status: published
+date: "2026-10-27"
+publishedOn: "2026-10-27"
+summary: "Pasting an API key into a prompt feels fast, but it leaks into logs, history and outputs. Here is when it is never OK and the safer setup agencies should use."
+author: "R21 Labs"
+---
+
+**Short answer:** almost never. A key pasted into a prompt can end up in chat history, provider logs, shared transcripts and even the model's own replies. Keep keys on the server side, give the assistant a scoped tool that uses the key for it, and rotate any key that has already been pasted.
+
+[Talk to us about a build](/contact) · +1 224-256-7011
+
+## Why is pasting a key into a prompt risky?
+
+A prompt isn't a private variable. Once you send it, the text can live in several places you don't control:
+
+- **Conversation history** that teammates, plugins or future sessions can read.
+- **Logs** on your side and the provider's side, kept for debugging or abuse review.
+- **Exports and screenshots** that get shared in tickets, email or chat.
+- **Model output.** If the key is in context, a later answer can repeat it, quote it in code or paste it into a file.
+
+The [OWASP Top 10 for LLM Applications](https://genai.owasp.org/llm-top-10/) lists sensitive information disclosure as one of the main risks for apps built on language models. A key sitting in context is exactly that kind of exposure, and prompt injection makes it worse: text from a web page or document can ask the model to reveal what it knows.
+
+## When is it never OK?
+
+Treat these as hard rules:
+
+1. **Production keys.** Anything that can charge a card, send email, change DNS or touch customer data.
+2. **Shared or long-lived sessions.** If anyone else can open the thread later, the key is shared with them.
+3. **Agents that browse or read files.** Untrusted content can carry instructions that try to pull the key out.
+4. **Client credentials.** You don't own the risk, so you don't get to take it.
+5. **Anything you can't rotate quickly.** If revoking the key would break a client site for a day, it doesn't belong in a prompt.
+
+If a key has already been pasted, assume it's exposed. Rotate it, then check the provider's usage log for calls you don't recognize.
+
+## What should you do instead?
+
+The pattern that works is simple: the assistant asks for an action, and something else holds the key.
+
+- **Use a connector or tool layer.** A tool like "create invoice" or "read calendar" runs on the server with the key loaded from the environment or a secrets manager. The model only sees the tool name, its inputs and the result. The [Model Context Protocol authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) describes this kind of token handling, where the client and server manage credentials instead of the conversation.
+- **Scope every key.** Read-only where possible, one project per key, short expiry. A leaked read-only key is a bad day; a leaked admin key is a bad month.
+- **Keep keys out of files the assistant can read.** Store them in a vault or environment variables, not in a notes file or the repo.
+- **Log actions, not secrets.** Your audit trail should show "tool X ran with input Y at time Z," never the key.
+- **Add a human gate for risky actions.** Payments, deletes and outbound messages should wait for a person to approve.
+
+We go deeper on the connector side in [keep secrets out of the prompt with MCP connectors](/blog/keep-secrets-out-of-the-prompt-with-mcp-connectors) and in our [MCP connector stack](/stack/mcp-connector-stack).
+
+## How do you set this up in an agency?
+
+For a small team, this is a one-week project, not a platform rebuild:
+
+1. **Inventory.** List every key your team has ever pasted into a chat or notebook. Rotate all of them.
+2. **Pick a home for secrets.** One vault or one environment store per client, with access limited to the people who need it.
+3. **Wrap the top five actions as tools.** Most agencies need the same few: read analytics, draft a post, check a calendar, look up a CRM record, open a ticket.
+4. **Set default scopes.** New keys start read-only. Write access is an explicit request with a reason.
+5. **Write the rule down.** One line in your team handbook: "No keys in prompts. Ask for a tool instead."
+
+Our playbook on [wiring an agency on MCPs](/playbooks/wiring-an-agency-on-mcps) walks through the order we use.
+
+## What about quick local tests?
+
+The honest exception is a throwaway key on your own machine, in a session nobody else sees, for a sandbox account with no real data. Even then, set it as an environment variable and let your script read it, so you build the right habit. The moment that test turns into a workflow, move the key behind a tool.
+
+## Common mistakes
+
+- **"It's only in my chat."** Chat history syncs, exports and gets shared. It's rarely only yours.
+- **Masking the middle of the key.** Partial keys still help attackers and still get pasted whole by accident.
+- **One master key for everything.** It feels simpler until you have to rotate it across ten clients at once.
+- **Trusting the model to forget.** Context isn't a vault. Don't rely on instructions like "don't repeat this."
+
+## FAQ
+
+**Can I tell the model to never repeat my key?**
+You can, but it isn't a security control. Prompt injection or a simple mistake can still surface it. Keep the key out of context.
+
+**Is it safer with a paid or enterprise plan?**
+Those plans can change retention and training terms, which helps. They don't stop the key from showing up in history, exports or output. Use tools anyway.
+
+**What if a client sends me their key in chat?**
+Don't use it from the chat. Ask them to rotate it and share the new one through your vault or a proper credential flow.
+
+**How often should keys be rotated?**
+Rotate on any suspected exposure, when someone leaves the team, and on a regular schedule your providers support.
+
+## Want a setup that keeps keys out of the chat?
+
+R21 Labs builds connector layers for agencies so teams can use AI on real client work without handing it the keys. [Talk to us about a build](/contact) or call +1 224-256-7011.
