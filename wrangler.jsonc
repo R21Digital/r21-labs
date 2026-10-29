@@ -1,10 +1,12 @@
 ﻿{
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "r21-labs",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
+  // worker.ts: 5 form POSTs to /api/submit per IP per 60 s, the Vercel Firewall rule this site had.
+  "ratelimits": [{ "name": "SUBMIT_RATE_LIMIT", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } }],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
